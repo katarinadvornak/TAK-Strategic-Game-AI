@@ -14,7 +14,7 @@
  */
 //Note, the above license and copyright applies to this file only.
 
-package com.Tak.lwjgl3;
+package com.Tak;
 
 import org.lwjgl.system.macosx.LibC;
 
