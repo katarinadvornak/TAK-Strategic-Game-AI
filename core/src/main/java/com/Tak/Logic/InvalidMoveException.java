@@ -1,4 +1,4 @@
-package Logic;
+package com.Tak.Logic;
 
 /**
  * Exception thrown when a move is invalid according to game rules.

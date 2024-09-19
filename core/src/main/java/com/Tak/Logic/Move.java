@@ -1,4 +1,4 @@
-package Logic;
+package com.Tak.Logic;
 
 import java.util.List;
 

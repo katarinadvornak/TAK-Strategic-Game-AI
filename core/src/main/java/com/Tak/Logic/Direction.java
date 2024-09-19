@@ -1,4 +1,4 @@
-package Logic;
+package com.Tak.Logic;
 
 /**
  * The Direction enum represents possible movement directions in the game.

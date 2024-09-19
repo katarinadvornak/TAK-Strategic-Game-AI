@@ -1,4 +1,4 @@
-package Logic;
+package com.Tak.Logic;
 
 /**
  * The WinChecker class is responsible for determining if a player has won the game.
