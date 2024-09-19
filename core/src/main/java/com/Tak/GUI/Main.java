@@ -1,5 +1,6 @@
-package com.Tak;
+package com.Tak.GUI;
 
+import com.Tak.GUI.FirstScreen;
 import com.badlogic.gdx.Game;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
