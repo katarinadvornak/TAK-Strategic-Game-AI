@@ -1,1 +1,4 @@
 .gitkeep
+board_texture.png
+player_black.png
+player_white.png

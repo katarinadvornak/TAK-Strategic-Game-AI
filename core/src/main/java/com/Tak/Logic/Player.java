@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * The Player class represents a player in the game.
- * It tracks the player's color and the number of remaining pieces.
+ * It tracks the player's color, the number of remaining pieces, and the player's score.
  */
 public class Player {
 
@@ -19,14 +19,15 @@ public class Player {
 
     private Color color; // The player's color.
     private Map<Piece.PieceType, Integer> remainingPieces; // Remaining pieces of each type.
+    private int score; // The player's score.
 
     /**
      * Constructor to initialize the player with a color and piece counts.
      *
-     * @param color          The player's color.
-     * @param flatStones     The number of flat stones.
-     * @param standingStones The number of standing stones.
-     * @param capstones      The number of capstones.
+     * @param color           The player's color.
+     * @param flatStones      The number of flat stones.
+     * @param standingStones  The number of standing stones.
+     * @param capstones       The number of capstones.
      */
     public Player(Color color, int flatStones, int standingStones, int capstones) {
         this.color = color;
@@ -34,6 +35,7 @@ public class Player {
         remainingPieces.put(Piece.PieceType.FLAT_STONE, flatStones);
         remainingPieces.put(Piece.PieceType.STANDING_STONE, standingStones);
         remainingPieces.put(Piece.PieceType.CAPSTONE, capstones);
+        this.score = 0; // Initialize score to 0
     }
 
     /**
@@ -80,13 +82,40 @@ public class Player {
     /**
      * Resets the player's pieces (for starting a new game).
      *
-     * @param flatStones     The number of flat stones.
-     * @param standingStones The number of standing stones.
-     * @param capstones      The number of capstones.
+     * @param flatStones      The number of flat stones.
+     * @param standingStones  The number of standing stones.
+     * @param capstones       The number of capstones.
      */
     public void resetPieces(int flatStones, int standingStones, int capstones) {
         remainingPieces.put(Piece.PieceType.FLAT_STONE, flatStones);
         remainingPieces.put(Piece.PieceType.STANDING_STONE, standingStones);
         remainingPieces.put(Piece.PieceType.CAPSTONE, capstones);
+        // Optionally reset score if you want scores to reset with a new game
+        // this.score = 0;
+    }
+
+    /**
+     * Gets the player's current score.
+     *
+     * @return The player's score.
+     */
+    public int getScore() {
+        return this.score;
+    }
+
+    /**
+     * Increments the player's score by the specified amount.
+     *
+     * @param points The number of points to add.
+     */
+    public void incrementScore(int points) {
+        this.score += points;
+    }
+
+    /**
+     * Resets the player's score to zero.
+     */
+    public void resetScore() {
+        this.score = 0;
     }
 }

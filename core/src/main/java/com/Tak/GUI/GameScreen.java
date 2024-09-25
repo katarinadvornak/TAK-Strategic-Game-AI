@@ -3,6 +3,8 @@ package com.Tak.GUI;
 import com.Tak.Logic.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.utils.*;
 import com.badlogic.gdx.math.*;
@@ -12,8 +14,17 @@ import com.badlogic.gdx.graphics.g3d.attributes.*;
 import com.badlogic.gdx.graphics.g3d.environment.*;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 
+import com.badlogic.gdx.scenes.scene2d.*;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The GameScreen class handles the rendering and UI of the Tak game.
+ * It manages the 3D board, pieces, and user interface elements.
+ */
 public class GameScreen implements Screen {
     private TakGameMain game;
     private PerspectiveCamera camera;
@@ -28,20 +39,44 @@ public class GameScreen implements Screen {
     private TakGame takGame;
     private CameraInputController camController;
 
-    private int boardSize = 5; // You can change this to other sizes (e.g., 3, 4, 5, 6, 8)
+    private int boardSize = 6; // Adjust as needed (e.g., 3, 4, 5, 6, 8)
+
+    // UI elements
+    private Stage stage;
+    private Skin skin;
+    private TextButton newGameButton;
+    private TextButton exitButton;
+    private Image playerBlackImage;
+    private Image playerWhiteImage;
+    private Label playerBlackScoreLabel;
+    private Label playerWhiteScoreLabel;
+    private List<String> movesArray;
+    private com.badlogic.gdx.scenes.scene2d.ui.List<String> movesList;
+    private Label currentPlayerLabel;
+
+    // Hotbar elements
+    private Image normalStoneImage;
+    private Image standingStoneImage;
+    private Image capstoneImage;
 
     public GameScreen(TakGameMain game) {
         this.game = game;
         create();
     }
 
+    /**
+     * Initializes the game screen, including the 3D board, pieces, and UI elements.
+     */
     public void create() {
+        // Open the game in full screen
+        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+
         // Initialize the game logic
         takGame = new TakGame(boardSize);
 
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(boardSize * 1.5f, boardSize * 1.5f, boardSize * 1.5f);
+        camera.position.set(boardSize * 2f, boardSize * 2f, boardSize * 2f); // Adjusted for larger board
         camera.lookAt(boardSize / 2f, 0, boardSize / 2f);
         camera.near = 0.1f;
         camera.far = 100f;
@@ -49,7 +84,6 @@ public class GameScreen implements Screen {
 
         // Camera controller for input
         camController = new CameraInputController(camera);
-        Gdx.input.setInputProcessor(new InputMultiplexer(camController, new InputHandler()));
 
         // Initialize ModelBatch and Environment
         modelBatch = new ModelBatch();
@@ -57,19 +91,23 @@ public class GameScreen implements Screen {
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1f));
         environment.add(new DirectionalLight().set(1f, 1f, 1f, -1f, -0.8f, -0.2f));
 
-        // Create the game board model
+        // Load the board texture with grid
+        Texture boardTexture = new Texture(Gdx.files.internal("board_texture.png")); // Ensure board_texture.png is in assets
+        Material boardMaterial = new Material(TextureAttribute.createDiffuse(boardTexture));
+
+        // Create the game board model with texture
         ModelBuilder modelBuilder = new ModelBuilder();
         boardModel = modelBuilder.createBox(boardSize, 0.2f, boardSize,
-            new Material(ColorAttribute.createDiffuse(Color.BROWN)),
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+            boardMaterial,
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
         boardInstance = new ModelInstance(boardModel);
         boardInstance.transform.setToTranslation(boardSize / 2f, -0.1f, boardSize / 2f);
 
-        // Create models for the pieces
+        // Create models for the pieces (placeholders)
         flatStoneModel = modelBuilder.createCylinder(0.8f, 0.2f, 0.8f, 32,
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        standingStoneModel = modelBuilder.createCylinder(0.8f, 1f, 0.8f, 32,
+        standingStoneModel = modelBuilder.createBox(0.8f, 1f, 0.8f,
             new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         capstoneModel = modelBuilder.createCone(0.8f, 0.8f, 0.8f, 32,
@@ -78,10 +116,136 @@ public class GameScreen implements Screen {
 
         pieceInstances = new Array<>();
 
+        // Initialize UI elements
+        stage = new Stage();
+        skin = createBasicSkin();
+
+        newGameButton = new TextButton("New Game", skin);
+        exitButton = new TextButton("Exit", skin);
+
+        // Create small black and white circles for player icons
+        Texture playerBlackTexture = createCircleTexture(Color.BLACK);
+        Texture playerWhiteTexture = createCircleTexture(Color.WHITE);
+        playerBlackImage = new Image(new TextureRegionDrawable(new TextureRegion(playerBlackTexture)));
+        playerWhiteImage = new Image(new TextureRegionDrawable(new TextureRegion(playerWhiteTexture)));
+
+        // Create labels for player scores
+        playerBlackScoreLabel = new Label("Score: 0", skin);
+        playerWhiteScoreLabel = new Label("Score: 0", skin);
+
+        // Initialize move list
+        movesArray = new ArrayList<>();
+        movesList = new com.badlogic.gdx.scenes.scene2d.ui.List<>(skin);
+        movesList.setItems(movesArray.toArray(new String[0]));
+
+        currentPlayerLabel = new Label("Current Player: " + takGame.getCurrentPlayer().getColor(), skin);
+
+        // Create left-side panel
+        Table leftPanel = new Table();
+        leftPanel.defaults().pad(5); // Default padding for elements
+
+        // New Game button
+        leftPanel.add(newGameButton).width(120).height(40).row();
+
+        // Player Black info
+        leftPanel.add(playerBlackImage).size(64, 64).row();
+        leftPanel.add(playerBlackScoreLabel).row();
+
+        // Player White info
+        leftPanel.add(playerWhiteImage).size(64, 64).row();
+        leftPanel.add(playerWhiteScoreLabel).row();
+
+        // Current Player Label
+        leftPanel.add(currentPlayerLabel).padTop(10).row();
+
+        // Move List
+        ScrollPane scrollPane = new ScrollPane(movesList, skin);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setScrollbarsVisible(true);
+        scrollPane.setForceScroll(false, true); // Disable horizontal scrolling
+
+        leftPanel.add(scrollPane).height(250).width(300).expandY().fillY().row(); // Increased height and width
+
+        // Create hotbar panel
+        Table hotbarPanel = new Table();
+        hotbarPanel.defaults().pad(5); // Padding between hotbar items
+
+        // Create placeholder shapes for pieces
+        normalStoneImage = new Image(new TextureRegionDrawable(createNormalStonePlaceholder()));
+        standingStoneImage = new Image(new TextureRegionDrawable(createStandingStonePlaceholder()));
+        capstoneImage = new Image(new TextureRegionDrawable(createCapstonePlaceholder()));
+
+        // Add shapes to hotbar
+        hotbarPanel.add(normalStoneImage).size(50, 50).row();
+        hotbarPanel.add(standingStoneImage).size(50, 50).row();
+        hotbarPanel.add(capstoneImage).size(50, 50).row();
+
+        // Add hotbar to left panel
+        leftPanel.add(new Label("Hotbar:", skin)).padTop(20).row();
+        leftPanel.add(hotbarPanel).padBottom(10).row();
+
+        // Create top-right panel for the exit button
+        Table topRightPanel = new Table();
+        topRightPanel.add(exitButton).width(100).height(40).pad(10);
+
+        // Create UI table
+        Table uiTable = new Table();
+        uiTable.setFillParent(true);
+
+        // Add top-right panel first
+        uiTable.top().right();
+        uiTable.add(topRightPanel).expandX().fillX().row();
+
+        // Add left panel aligned to top left
+        uiTable.top().left();
+        uiTable.add(leftPanel).expandY().fillY().pad(10).left();
+
+        stage.addActor(uiTable);
+
+        // Add listeners to buttons
+        addButtonListeners();
+
+        // Set input processors
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, camController, new InputHandler()));
+
         // Initial rendering of the board and pieces
         updatePieceInstances();
+        updatePlayerScores();
+        updateHotbarColors();
     }
 
+    /**
+     * Adds listeners to the New Game and Exit buttons.
+     */
+    private void addButtonListeners() {
+        // Listener for New Game button
+        newGameButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                takGame.resetGame();
+                updatePieceInstances();
+                movesArray.clear();
+                movesList.setItems(movesArray.toArray(new String[0]));
+                currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                updatePlayerScores();
+                updateHotbarColors();
+            }
+        });
+
+        // Listener for Exit button
+        exitButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.exit();
+            }
+        });
+    }
+
+    /**
+     * Renders the game screen, including the 3D board, pieces, and UI elements.
+     *
+     * @param delta Time in seconds since the last render.
+     */
     @Override
     public void render(float delta) {
         // Update camera controller
@@ -99,8 +263,15 @@ public class GameScreen implements Screen {
             modelBatch.render(instance, environment);
         }
         modelBatch.end();
+
+        // Update and draw the UI
+        stage.act(delta);
+        stage.draw();
     }
 
+    /**
+     * Updates the rendering instances of all pieces on the board.
+     */
     private void updatePieceInstances() {
         pieceInstances.clear();
         Board board = takGame.getBoard();
@@ -127,6 +298,12 @@ public class GameScreen implements Screen {
         }
     }
 
+    /**
+     * Returns the appropriate model for a given piece type.
+     *
+     * @param piece The piece whose model is needed.
+     * @return The corresponding model.
+     */
     private Model getModelForPiece(Piece piece) {
         switch (piece.getPieceType()) {
             case FLAT_STONE:
@@ -140,6 +317,12 @@ public class GameScreen implements Screen {
         }
     }
 
+    /**
+     * Returns the height offset for a given piece type.
+     *
+     * @param piece The piece whose height is needed.
+     * @return The height offset.
+     */
     private float getHeightForPiece(Piece piece) {
         switch (piece.getPieceType()) {
             case FLAT_STONE:
@@ -153,14 +336,26 @@ public class GameScreen implements Screen {
         }
     }
 
+    /**
+     * Resizes the viewport when the window size changes.
+     *
+     * @param width  The new width.
+     * @param height The new height.
+     */
     @Override
     public void resize(int width, int height) {
         // Update camera viewport
         camera.viewportWidth = width;
         camera.viewportHeight = height;
         camera.update();
+
+        // Update the stage viewport
+        stage.getViewport().update(width, height, true);
     }
 
+    /**
+     * Disposes of all resources to prevent memory leaks.
+     */
     @Override
     public void dispose() {
         modelBatch.dispose();
@@ -168,6 +363,8 @@ public class GameScreen implements Screen {
         flatStoneModel.dispose();
         standingStoneModel.dispose();
         capstoneModel.dispose();
+        stage.dispose();
+        skin.dispose();
     }
 
     @Override public void show() {}
@@ -175,7 +372,9 @@ public class GameScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
 
-    // Input handling for placing pieces and moving stacks
+    /**
+     * Handles user input for placing pieces on the board.
+     */
     private class InputHandler extends InputAdapter {
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
@@ -186,8 +385,8 @@ public class GameScreen implements Screen {
             Vector3 intersection = new Vector3();
 
             if (Intersector.intersectRayPlane(pickRay, new Plane(new Vector3(0, 1, 0), 0), intersection)) {
-                int x = Math.floorDiv((int) intersection.x, 1);
-                int y = Math.floorDiv((int) intersection.z, 1);
+                int x = (int) Math.floor(intersection.x);
+                int y = (int) Math.floor(intersection.z);
 
                 if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
                     try {
@@ -200,10 +399,23 @@ public class GameScreen implements Screen {
                         // Update the rendering
                         updatePieceInstances();
 
+                        // Update the moves list and current player label
+                        String moveDescription = "Player " + takGame.getCurrentPlayer().getColor() + " placed at (" + x + ", " + y + ")";
+                        movesArray.add(moveDescription);
+                        movesList.setItems(movesArray.toArray(new String[0]));
+                        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+
+                        // Update player scores
+                        updatePlayerScores();
+
+                        // Update hotbar colors based on the new current player
+                        updateHotbarColors();
+
                         // Check for game end
                         if (takGame.isGameEnded()) {
                             // Handle game end (e.g., display a message)
                             System.out.println("Game Over!");
+                            showGameOverDialog();
                         }
                     } catch (InvalidMoveException e) {
                         // Handle invalid move (e.g., show a message)
@@ -217,4 +429,294 @@ public class GameScreen implements Screen {
             return true;
         }
     }
+
+    /**
+     * Creates a placeholder texture for a normal stone (circle).
+     *
+     * @return The generated texture.
+     */
+    private Texture createNormalStonePlaceholder() {
+        int size = 64;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(Color.WHITE);
+        pixmap.fillCircle(size / 2, size / 2, size / 2 - 2); // White circle with padding
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a placeholder texture for a standing stone (rectangle).
+     *
+     * @return The generated texture.
+     */
+    private Texture createStandingStonePlaceholder() {
+        int width = 64;
+        int height = 64;
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(Color.WHITE);
+        pixmap.fillRectangle(8, 16, width - 16, height - 32); // White rectangle with padding
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a placeholder texture for a capstone (cone).
+     *
+     * @return The generated texture.
+     */
+    private Texture createCapstonePlaceholder() {
+        int size = 64;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(Color.WHITE);
+        // Draw a simple cone shape using triangles
+        pixmap.fillTriangle(size / 2, size - 2, 2, 2, size - 2, 2); // Base triangle
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a small circle texture of a given color for player icons.
+     *
+     * @param color The color of the circle.
+     * @return The generated texture.
+     */
+    private Texture createCircleTexture(Color color) {
+        int size = 64; // Size of the circle
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(color);
+        pixmap.fillCircle(size / 2, size / 2, size / 2 - 2); // Circle with padding
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a basic skin programmatically for UI elements.
+     *
+     * @return The created skin.
+     */
+    private Skin createBasicSkin() {
+        Skin skin = new Skin();
+
+        // Create a default font
+        BitmapFont font = new BitmapFont();
+        skin.add("default", font);
+
+        // Create button textures
+        Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapUp.setColor(Color.GRAY);
+        pixmapUp.fill();
+        skin.add("button-up", new Texture(pixmapUp));
+
+        Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapDown.setColor(Color.DARK_GRAY);
+        pixmapDown.fill();
+        skin.add("button-down", new Texture(pixmapDown));
+
+        pixmapUp.dispose();
+        pixmapDown.dispose();
+
+        // Create a TextButton style
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.newDrawable("button-up");
+        textButtonStyle.down = skin.newDrawable("button-down");
+        textButtonStyle.font = skin.getFont("default");
+        skin.add("default", textButtonStyle);
+
+        // Create a Label style
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = skin.getFont("default");
+        skin.add("default", labelStyle);
+
+        // Create a List style
+        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
+        listStyle.font = skin.getFont("default");
+        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
+        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
+        skin.add("default", listStyle);
+
+        // Create a ScrollPane style
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        skin.add("default", scrollPaneStyle);
+
+        // Create an ImageButton style (if needed in the future)
+        skin.add("default", new ImageButton.ImageButtonStyle());
+
+        return skin;
+    }
+
+    /**
+     * Updates the player scores displayed on the UI.
+     */
+    private void updatePlayerScores() {
+        // Retrieve scores from players
+        int playerBlackScore = takGame.getPlayer1().getScore();
+        int playerWhiteScore = takGame.getPlayer2().getScore();
+
+        // Update score labels
+        playerBlackScoreLabel.setText("Score: " + playerBlackScore);
+        playerWhiteScoreLabel.setText("Score: " + playerWhiteScore);
+    }
+
+    /**
+     * Updates the colors of the hotbar pieces based on the current player's turn.
+     */
+    private void updateHotbarColors() {
+        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
+
+        // Update normal stone color
+        ((TextureRegionDrawable) normalStoneImage.getDrawable()).getRegion().getTexture().dispose();
+        normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
+
+        // Update standing stone color
+        ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture().dispose();
+        standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
+
+        // Update capstone color
+        ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture().dispose();
+        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
+    }
+
+    /**
+     * Creates a colored placeholder texture based on the type of piece and the specified color.
+     *
+     * @param type  The type of piece ("normal", "standing", "capstone").
+     * @param color The color to apply.
+     * @return The generated texture.
+     */
+    private Texture createColoredPlaceholder(String type, Color color) {
+        switch (type) {
+            case "normal":
+                return createNormalStonePlaceholderWithColor(color);
+            case "standing":
+                return createStandingStonePlaceholderWithColor(color);
+            case "capstone":
+                return createCapstonePlaceholderWithColor(color);
+            default:
+                return createNormalStonePlaceholderWithColor(color);
+        }
+    }
+
+    /**
+     * Creates a colored placeholder texture for a normal stone (circle).
+     *
+     * @param color The color to apply.
+     * @return The generated texture.
+     */
+    private Texture createNormalStonePlaceholderWithColor(Color color) {
+        int size = 64;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(color);
+        pixmap.fillCircle(size / 2, size / 2, size / 2 - 2); // Circle with padding
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a colored placeholder texture for a standing stone (rectangle).
+     *
+     * @param color The color to apply.
+     * @return The generated texture.
+     */
+    private Texture createStandingStonePlaceholderWithColor(Color color) {
+        int width = 64;
+        int height = 64;
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(color);
+        pixmap.fillRectangle(8, 16, width - 16, height - 32); // Rectangle with padding
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Creates a colored placeholder texture for a capstone (cone).
+     *
+     * @param color The color to apply.
+     * @return The generated texture.
+     */
+    private Texture createCapstonePlaceholderWithColor(Color color) {
+        int size = 64;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0); // Transparent background
+        pixmap.fill();
+
+        pixmap.setColor(color);
+        // Draw a simple cone shape using triangles
+        pixmap.fillTriangle(size / 2, size - 2, 2, 2, size - 2, 2); // Base triangle
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    /**
+     * Shows a game over dialog with the final scores and winner information.
+     */
+    private void showGameOverDialog() {
+        Player winner = null;
+        if (takGame.getPlayer1().getScore() > takGame.getPlayer2().getScore()) {
+            winner = takGame.getPlayer1();
+        } else if (takGame.getPlayer2().getScore() > takGame.getPlayer1().getScore()) {
+            winner = takGame.getPlayer2();
+        }
+
+        String message;
+        if (winner != null) {
+            message = winner.getColor() + " wins!\n" +
+                "Final Scores:\n" +
+                "Black: " + takGame.getPlayer1().getScore() + "\n" +
+                "White: " + takGame.getPlayer2().getScore();
+        } else {
+            message = "It's a tie!\n" +
+                "Final Scores:\n" +
+                "Black: " + takGame.getPlayer1().getScore() + "\n" +
+                "White: " + takGame.getPlayer2().getScore();
+        }
+
+        Dialog dialog = new Dialog("Game Over", skin) {
+            @Override
+            protected void result(Object object) {
+                // Optional: Handle dialog result if needed
+            }
+        };
+        dialog.text(message);
+        dialog.button("OK");
+        dialog.show(stage);
+    }
+
+    /**
+     * Method to create a basic skin programmatically.
+     *
+     * @return The created skin.
+     */
+
 }

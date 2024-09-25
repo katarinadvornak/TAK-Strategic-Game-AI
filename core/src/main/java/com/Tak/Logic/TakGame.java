@@ -1,7 +1,5 @@
 package com.Tak.Logic;
 
-import java.util.List;
-
 /**
  * The TakGame class manages the overall game flow.
  * It handles player turns, move execution, and checks for win conditions.
@@ -132,16 +130,18 @@ public class TakGame {
     }
 
     /**
-     * Checks for win conditions after a move.
+     * Checks for win conditions after a move and updates scores accordingly.
      */
     private void checkWinConditions() {
         if (winChecker.checkForRoadWin(currentPlayer, board)) {
             System.out.println(currentPlayer.getColor() + " wins by road!");
+            currentPlayer.incrementScore(1); // Increment score by 1 for road win
             gameEnded = true;
         } else {
             Player flatWinPlayer = winChecker.checkForFlatWin(this);
             if (flatWinPlayer != null) {
                 System.out.println(flatWinPlayer.getColor() + " wins by flat count!");
+                flatWinPlayer.incrementScore(1); // Increment score by 1 for flat win
                 gameEnded = true;
             }
         }
@@ -201,6 +201,7 @@ public class TakGame {
 
     /**
      * Resets the game to its initial state.
+     * Optionally resets player scores if desired.
      */
     public void resetGame() {
         board.resetBoard();
@@ -208,7 +209,10 @@ public class TakGame {
         gameEnded = false;
         int flatStones = calculateFlatStones(board.getSize());
         int capstones = calculateCapstones(board.getSize());
-        player1 = new Player(Player.Color.BLACK, flatStones, 0, capstones);
-        player2 = new Player(Player.Color.WHITE, flatStones, 0, capstones);
+        player1.resetPieces(flatStones, 0, capstones);
+        player2.resetPieces(flatStones, 0, capstones);
+        // Optionally reset scores if you want scores to reset with a new game
+         player1.resetScore();
+         player2.resetScore();
     }
 }
