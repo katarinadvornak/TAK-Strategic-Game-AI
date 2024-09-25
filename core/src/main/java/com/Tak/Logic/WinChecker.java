@@ -1,5 +1,7 @@
 package com.Tak.Logic;
 
+import com.badlogic.gdx.Gdx;
+
 /**
  * The WinChecker class is responsible for determining if a player has won the game.
  * It checks for road wins and flat wins.
@@ -17,20 +19,26 @@ public class WinChecker {
      */
     public boolean checkForRoadWin(Player player, Board board) {
         int size = board.getSize();
+        boolean[][] visited;
+        // Check for horizontal road (left to right)
         for (int y = 0; y < size; y++) {
-            boolean[][] visited = new boolean[size][size];
+            visited = new boolean[size][size];
             if (dfsRoad(player, board, 0, y, visited, true)) {
+                Gdx.app.log("WinChecker", "Horizontal road win detected for " + player.getColor());
                 return true;
             }
         }
+        // Check for vertical road (top to bottom)
         for (int x = 0; x < size; x++) {
-            boolean[][] visited = new boolean[size][size];
+            visited = new boolean[size][size];
             if (dfsRoad(player, board, x, 0, visited, false)) {
+                Gdx.app.log("WinChecker", "Vertical road win detected for " + player.getColor());
                 return true;
             }
         }
         return false;
     }
+
 
     /**
      * Performs a depth-first search to find a continuous road.
@@ -44,7 +52,10 @@ public class WinChecker {
      * @return true if a road is found, false otherwise.
      */
     private boolean dfsRoad(Player player, Board board, int x, int y, boolean[][] visited, boolean isHorizontal) {
-        if (!board.isWithinBounds(x, y) || visited[x][y]) {
+        if (!board.isWithinBounds(x, y)) {
+            return false;
+        }
+        if (visited[x][y]) {
             return false;
         }
         Piece piece = board.getPieceAt(x, y);
@@ -54,12 +65,15 @@ public class WinChecker {
         visited[x][y] = true;
         int size = board.getSize();
 
+        // Check if we've reached the opposite side
         if (isHorizontal && x == size - 1) {
             return true;
         }
         if (!isHorizontal && y == size - 1) {
             return true;
         }
+
+        // Explore neighboring positions
         int[][] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
         for (int[] dir : directions) {
             int nx = x + dir[0];
@@ -70,6 +84,7 @@ public class WinChecker {
         }
         return false;
     }
+
 
     /**
      * Checks whether a flat win has been achieved.

@@ -12,6 +12,8 @@ public class TakGame {
     private Player currentPlayer;     // The player whose turn it is
     private WinChecker winChecker;    // Utility to check win conditions
     private boolean gameEnded;        // Flag to indicate if the game has ended
+    private Player winner;
+    private int moveCount;            // To track the number of moves made
 
     /**
      * Constructor to initialize the game with the board and players.
@@ -22,12 +24,17 @@ public class TakGame {
         this.board = new Board(boardSize);
         int flatStones = calculateFlatStones(boardSize);
         int capstones = calculateCapstones(boardSize);
+        int standingStones = calculateStandingStones(boardSize);
 
-        this.player1 = new Player(Player.Color.BLACK, flatStones, 0, capstones);
-        this.player2 = new Player(Player.Color.WHITE, flatStones, 0, capstones);
-        this.currentPlayer = player1;
+        this.player1 = new Player(Player.Color.BLACK, flatStones, standingStones, capstones);
+        this.player2 = new Player(Player.Color.WHITE, flatStones, standingStones, capstones);
+
+        // Initialize currentPlayer to Player 2 (White)
+        this.currentPlayer = player2;
+
         this.winChecker = new WinChecker();
         this.gameEnded = false;
+        this.moveCount = 0;
     }
 
     /**
@@ -53,6 +60,23 @@ public class TakGame {
         }
     }
 
+    private int calculateStandingStones(int boardSize) {
+        switch (boardSize) {
+            case 3:
+                return 0; // Or appropriate value
+            case 4:
+                return 0; // Or appropriate value
+            case 5:
+                return 10; // Adjust based on game rules
+            case 6:
+                return 15;
+            case 8:
+                return 25;
+            default:
+                return 10;
+        }
+    }
+
     /**
      * Calculates the number of capstones based on board size.
      *
@@ -73,33 +97,28 @@ public class TakGame {
     }
 
     /**
+     * Returns the current move count.
+     *
+     * @return The move count.
+     */
+    public int getMoveCount() {
+        return this.moveCount;
+    }
+
+    /**
+     * Gets the winner of the game.
+     *
+     * @return The winning player, or null if no winner yet.
+     */
+    public Player getWinner() {
+        return winner;
+    }
+
+    /**
      * Starts the game. Any initial setup can be done here.
      */
     public void startGame() {
         // Initialization logic if needed
-    }
-
-    /**
-     * Performs a move for the current player.
-     *
-     * @param move The move to be performed.
-     * @throws GameOverException     If the game has ended.
-     * @throws InvalidMoveException  If the move is invalid.
-     */
-    public void performMove(Move move) throws GameOverException, InvalidMoveException {
-        if (gameEnded) {
-            throw new GameOverException("Game has ended.");
-        }
-        int fromX = move.getStartX();
-        int fromY = move.getStartY();
-        if (!board.isValidMove(fromX, fromY, fromX, fromY, move.getNumberOfPieces(), currentPlayer)) {
-            throw new InvalidMoveException("Invalid move.");
-        }
-        board.movePiece(fromX, fromY, move, currentPlayer);
-        checkWinConditions();
-        if (!gameEnded) {
-            switchPlayer();
-        }
     }
 
     /**
@@ -116,10 +135,22 @@ public class TakGame {
             throw new GameOverException("Game has ended.");
         }
 
+        Player pieceOwner = currentPlayer;
+
+        if (moveCount < 2) {
+            // For the first two moves, players place opponent's flat stones
+            if (pieceType != Piece.PieceType.FLAT_STONE) {
+                throw new InvalidMoveException("Only flat stones can be placed on the first two moves.");
+            }
+            // The piece owner is the opponent
+            pieceOwner = getOpponentPlayer();
+        }
+
         if (currentPlayer.hasPiecesLeft(pieceType)) {
-            Piece piece = new Piece(pieceType, currentPlayer);
+            Piece piece = new Piece(pieceType, pieceOwner);
             board.placePiece(x, y, piece, currentPlayer);
             currentPlayer.decrementPiece(pieceType);
+            moveCount++;
             checkWinConditions();
             if (!gameEnded) {
                 switchPlayer();
@@ -130,19 +161,30 @@ public class TakGame {
     }
 
     /**
+     * Gets the opponent player.
+     *
+     * @return The opponent player.
+     */
+    private Player getOpponentPlayer() {
+        return (currentPlayer == player1) ? player2 : player1;
+    }
+
+    /**
      * Checks for win conditions after a move and updates scores accordingly.
      */
     private void checkWinConditions() {
         if (winChecker.checkForRoadWin(currentPlayer, board)) {
             System.out.println(currentPlayer.getColor() + " wins by road!");
-            currentPlayer.incrementScore(1); // Increment score by 1 for road win
+            winner = currentPlayer;
             gameEnded = true;
+            currentPlayer.incrementScore(1);
         } else {
             Player flatWinPlayer = winChecker.checkForFlatWin(this);
             if (flatWinPlayer != null) {
                 System.out.println(flatWinPlayer.getColor() + " wins by flat count!");
-                flatWinPlayer.incrementScore(1); // Increment score by 1 for flat win
+                winner = flatWinPlayer;
                 gameEnded = true;
+                flatWinPlayer.incrementScore(1);
             }
         }
     }
@@ -205,14 +247,16 @@ public class TakGame {
      */
     public void resetGame() {
         board.resetBoard();
-        currentPlayer = player1;
+        currentPlayer = player2; // Start with White as per Tak rules
         gameEnded = false;
+        moveCount = 0;
         int flatStones = calculateFlatStones(board.getSize());
+        int standingStones = calculateStandingStones(board.getSize());
         int capstones = calculateCapstones(board.getSize());
-        player1.resetPieces(flatStones, 0, capstones);
-        player2.resetPieces(flatStones, 0, capstones);
+        player1.resetPieces(flatStones, standingStones, capstones);
+        player2.resetPieces(flatStones, standingStones, capstones);
         // Optionally reset scores if you want scores to reset with a new game
-        player1.resetScore();
-        player2.resetScore();
+        // player1.resetScore();
+        // player2.resetScore();
     }
 }

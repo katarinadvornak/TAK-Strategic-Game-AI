@@ -115,13 +115,13 @@ public class GameScreen implements Screen {
         boardInstance.transform.setToTranslation(boardSize / 2f, -0.1f, boardSize / 2f);
 
         // Create models for the pieces (placeholders)
-        flatStoneModel = modelBuilder.createSphere(0.8f, 0.2f, 0.8f, 32, 32,
+        flatStoneModel = modelBuilder.createCylinder(0.8f, 0.2f, 0.8f, 32,
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         standingStoneModel = modelBuilder.createBox(0.8f, 1f, 0.8f,
             new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        capstoneModel = modelBuilder.createCone(0.8f, 0.8f, 0.8f, 32,
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
+        capstoneModel = modelBuilder.createCone(0.8f, 1f, 0.8f, 32,
             new Material(ColorAttribute.createDiffuse(Color.RED)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
@@ -180,16 +180,23 @@ public class GameScreen implements Screen {
         // Create hotbar panel
         Table hotbarPanel = new Table();
         hotbarPanel.defaults().pad(5); // Padding between hotbar items
-
         // Create placeholder shapes for pieces
         normalStoneImage = new Image(new TextureRegionDrawable(createNormalStonePlaceholder()));
         standingStoneImage = new Image(new TextureRegionDrawable(createStandingStonePlaceholder()));
         capstoneImage = new Image(new TextureRegionDrawable(createCapstonePlaceholder()));
 
-        // Add shapes to hotbar
+        // **Add labels to hotbar images**
+        Label normalStoneLabel = new Label("Flat Stone", skin);
+        Label standingStoneLabel = new Label("Standing Stone", skin);
+        Label capstoneLabel = new Label("Capstone", skin);
+
+        // Add images and labels to hotbar
         hotbarPanel.add(normalStoneImage).size(50, 50).row();
+        hotbarPanel.add(normalStoneLabel).row();
         hotbarPanel.add(standingStoneImage).size(50, 50).row();
+        hotbarPanel.add(standingStoneLabel).row();
         hotbarPanel.add(capstoneImage).size(50, 50).row();
+        hotbarPanel.add(capstoneLabel).row();
 
         // Add hotbar to left panel
         leftPanel.add(new Label("Hotbar:", skin)).padTop(20).row();
@@ -220,12 +227,15 @@ public class GameScreen implements Screen {
         addHotbarListeners();
 
         // Set input processors
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, camController, new InputHandler()));
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, new InputHandler(), camController));
+
 
         // Initial rendering of the board and pieces
         updatePieceInstances();
         updatePlayerScores();
+        // After setting up UI elements
         updateHotbarColors();
+
     }
 
     /**
@@ -242,11 +252,12 @@ public class GameScreen implements Screen {
                 movesList.setItems(movesArray.toArray(new String[0]));
                 currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
                 updatePlayerScores();
-                updateHotbarColors();
                 selectedPieceType = null;
                 removeHoverOutline();
+                updateHotbarColors();
             }
         });
+
 
         // Listener for Exit button
         exitButton.addListener(new ClickListener() {
@@ -293,6 +304,12 @@ public class GameScreen implements Screen {
      * @param pieceType The piece type to toggle.
      */
     private void toggleSelection(Piece.PieceType pieceType) {
+        // During first two moves, only flat stones can be selected
+        if (takGame.getMoveCount() < 2 && pieceType != Piece.PieceType.FLAT_STONE) {
+            showErrorDialog("Only flat stones can be placed in the first two moves.");
+            return;
+        }
+
         if (selectedPieceType == pieceType) {
             // Deselect if already selected
             selectedPieceType = null;
@@ -305,6 +322,9 @@ public class GameScreen implements Screen {
             Gdx.app.log("GameScreen", "Selected " + pieceType);
         }
     }
+
+
+
 
     /**
      * Renders the game screen, including the 3D board, pieces, and UI elements.
@@ -355,6 +375,7 @@ public class GameScreen implements Screen {
                         Color pieceColor = piece.getOwner().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
                         ((ColorAttribute) pieceInstance.materials.get(0).get(ColorAttribute.Diffuse)).color.set(pieceColor);
 
+
                         pieceInstances.add(pieceInstance);
                         heightOffset += getHeightForPiece(piece);
                     }
@@ -364,6 +385,11 @@ public class GameScreen implements Screen {
 
         // Re-add the board to ensure it's rendered beneath all pieces
         pieceInstances.add(boardInstance);
+
+        // **Re-add hover outline if it exists**
+        if (hoverOutlineInstance != null) {
+            pieceInstances.add(hoverOutlineInstance);
+        }
     }
 
     /**
@@ -396,13 +422,14 @@ public class GameScreen implements Screen {
             case FLAT_STONE:
                 return 0.2f;
             case STANDING_STONE:
-                return 1f;
+                return 0.5f; // Adjusted from 1f to 0.5f
             case CAPSTONE:
                 return 0.8f;
             default:
                 return 0.2f;
         }
     }
+
 
     /**
      * Resizes the viewport when the window size changes.
@@ -465,11 +492,18 @@ public class GameScreen implements Screen {
             Vector3 intersection = new Vector3();
 
             // Define the plane of the board
-            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(boardSize / 2f, 0, boardSize / 2f));
+            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(0, 0, 0));
 
             if (Intersector.intersectRayPlane(pickRay, boardPlane, intersection)) {
-                int x = (int) Math.floor(intersection.x);
-                int y = (int) Math.floor(intersection.z);
+                // Adjust for board's position
+                Vector3 boardPosition = new Vector3();
+                boardInstance.transform.getTranslation(boardPosition);
+
+                float localX = intersection.x - (boardPosition.x - boardSize / 2f);
+                float localY = intersection.z - (boardPosition.z - boardSize / 2f);
+
+                int x = (int) Math.floor(localX);
+                int y = (int) Math.floor(localY);
 
                 Gdx.app.log("GameScreen", "Clicked position: (" + x + ", " + y + ")");
 
@@ -485,14 +519,15 @@ public class GameScreen implements Screen {
                         String moveDescription = "Player " + takGame.getCurrentPlayer().getColor() + " placed " + selectedPieceType + " at (" + x + ", " + y + ")";
                         movesArray.add(moveDescription);
                         movesList.setItems(movesArray.toArray(new String[0]));
-                        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-
                         // Update player scores
                         updatePlayerScores();
 
                         // Switch player and update hotbar colors
+
                         takGame.switchPlayer();
+                        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
                         updateHotbarColors();
+
 
                         // Deselect the piece
                         selectedPieceType = null;
@@ -500,16 +535,16 @@ public class GameScreen implements Screen {
 
                         // Check for game end
                         if (takGame.isGameEnded()) {
-                            showGameOverDialog();
+                            showGameOverDialog(takGame.getWinner());
                         }
                     } catch (InvalidMoveException e) {
                         // Handle invalid move (e.g., show a message)
                         Gdx.app.error("GameScreen", "Invalid Move: " + e.getMessage(), e);
                         showErrorDialog("Invalid Move: " + e.getMessage());
                     } catch (GameOverException e) {
-                        // Handle game over
                         Gdx.app.log("GameScreen", "Game Over: " + e.getMessage());
-                        showGameOverDialog();
+                        showGameOverDialog(takGame.getWinner());
+                        e.printStackTrace();
                     }
                 } else {
                     Gdx.app.log("GameScreen", "Clicked out of bounds: (" + x + ", " + y + ")");
@@ -532,11 +567,18 @@ public class GameScreen implements Screen {
             Vector3 intersection = new Vector3();
 
             // Define the plane of the board
-            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(boardSize / 2f, 0, boardSize / 2f));
+            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(0, 0, 0));
 
             if (Intersector.intersectRayPlane(pickRay, boardPlane, intersection)) {
-                int x = (int) Math.floor(intersection.x);
-                int y = (int) Math.floor(intersection.z);
+                // Adjust for board's position
+                Vector3 boardPosition = new Vector3();
+                boardInstance.transform.getTranslation(boardPosition);
+
+                float localX = intersection.x - (boardPosition.x - boardSize / 2f);
+                float localY = intersection.z - (boardPosition.z - boardSize / 2f);
+
+                int x = (int) Math.floor(localX);
+                int y = (int) Math.floor(localY);
 
                 Gdx.app.log("GameScreen", "Hovering over: (" + x + ", " + y + ")");
 
@@ -551,8 +593,7 @@ public class GameScreen implements Screen {
                 } else {
                     removeHoverOutline();
                 }
-            } else {
-                removeHoverOutline();
+
             }
 
             return false;
@@ -567,10 +608,11 @@ public class GameScreen implements Screen {
          */
         private ModelInstance createHoverOutline(int x, int y) {
             ModelBuilder modelBuilder = new ModelBuilder();
-            // Removed modelBuilder.begin(); to prevent "Call end() first" exception
 
             // Create a box slightly above the board to serve as an outline
-            Material outlineMaterial = new Material(ColorAttribute.createDiffuse(new Color(0, 0, 1, 0.3f)));
+            Material outlineMaterial = new Material(ColorAttribute.createDiffuse(new Color(0, 0, 1, 0.1f)));
+            outlineMaterial.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)); // Enable transparency
+
             Model outlineModel = modelBuilder.createBox(1.0f, 0.05f, 1.0f,
                 outlineMaterial,
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
@@ -828,39 +870,49 @@ public class GameScreen implements Screen {
     private void updateHotbarColors() {
         Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
 
+        if (takGame.getMoveCount() < 2) {
+            // First two moves, players place opponent's flat stones
+            currentColor = (currentColor == Color.WHITE) ? Color.BLACK : Color.WHITE;
+            // Hide standing stone and capstone during first two moves
+            standingStoneImage.setVisible(false);
+            capstoneImage.setVisible(false);
+        } else {
+            // Show standing stone and capstone
+            standingStoneImage.setVisible(true);
+            capstoneImage.setVisible(true);
+        }
+
         // Update normal stone color
         if (normalStoneImage.getDrawable() != null) {
             Texture oldTexture = ((TextureRegionDrawable) normalStoneImage.getDrawable()).getRegion().getTexture();
             oldTexture.dispose();
         }
         normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
+        normalStoneImage.invalidate();
 
-        // Update standing stone color
-        if (standingStoneImage.getDrawable() != null) {
-            Texture oldTexture = ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture();
-            oldTexture.dispose();
-        }
-        standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
+        // Update standing stone and capstone colors only if they are visible
+        if (takGame.getMoveCount() >= 2) {
+            if (standingStoneImage.getDrawable() != null) {
+                Texture oldTexture = ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture();
+                oldTexture.dispose();
+            }
+            standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
+            standingStoneImage.invalidate();
 
-        // Update capstone color
-        if (capstoneImage.getDrawable() != null) {
-            Texture oldTexture = ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture();
-            oldTexture.dispose();
+            if (capstoneImage.getDrawable() != null) {
+                Texture oldTexture = ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture();
+                oldTexture.dispose();
+            }
+            capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
+            capstoneImage.invalidate();
         }
-        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
     }
+
 
     /**
      * Shows a game over dialog with the final scores and winner information.
      */
-    private void showGameOverDialog() {
-        Player winner = null;
-        if (takGame.getPlayer1().getScore() > takGame.getPlayer2().getScore()) {
-            winner = takGame.getPlayer1();
-        } else if (takGame.getPlayer2().getScore() > takGame.getPlayer1().getScore()) {
-            winner = takGame.getPlayer2();
-        }
-
+    private void showGameOverDialog(Player winner) {
         String message;
         if (winner != null) {
             message = winner.getColor() + " wins!\n" +
@@ -877,13 +929,30 @@ public class GameScreen implements Screen {
         Dialog dialog = new Dialog("Game Over", skin) {
             @Override
             protected void result(Object object) {
-                // Optional: Handle dialog result if needed
+                if (object.equals("newGame")) {
+                    takGame.resetGame();
+                    updatePieceInstances();
+                    movesArray.clear();
+                    movesList.setItems(movesArray.toArray(new String[0]));
+                    currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                    updatePlayerScores();
+                    selectedPieceType = null;
+                    removeHoverOutline();
+                } else if (object.equals("continue")) {
+                    // Continue the game without resetting
+                } else if (object.equals("exit")) {
+                    Gdx.app.exit(); // This should only be called if the user chooses to exit
+                }
             }
         };
         dialog.text(message);
-        dialog.button("OK");
+        dialog.button("New Game", "newGame");
+        dialog.button("Continue", "continue");
+        dialog.button("Exit", "exit");
         dialog.show(stage);
     }
+
+
 
     /**
      * Shows an error dialog with the specified message.
