@@ -4,4 +4,11 @@ eclipse.project.name = appName + '-core'
 dependencies {
   api "com.badlogicgames.gdx:gdx-ai:$aiVersion"
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx:1.10.0"
+  implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:1.10.0"
+  implementation "com.badlogicgames.gdx:gdx-platform:1.10.0:natives-desktop"
+  implementation "com.badlogicgames.gdx:gdx-freetype:1.10.0"
+
+  // For 3D support
+  implementation "com.badlogicgames.gdx:gdx-box2d:1.10.0"
 }
