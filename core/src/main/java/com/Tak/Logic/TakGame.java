@@ -98,7 +98,7 @@ public class TakGame {
         board.movePiece(fromX, fromY, move, currentPlayer);
         checkWinConditions();
         if (!gameEnded) {
-            switchTurns();
+            switchPlayer();
         }
     }
 
@@ -122,7 +122,7 @@ public class TakGame {
             currentPlayer.decrementPiece(pieceType);
             checkWinConditions();
             if (!gameEnded) {
-                switchTurns();
+                switchPlayer();
             }
         } else {
             throw new InvalidMoveException("No remaining pieces of this type.");
@@ -148,9 +148,9 @@ public class TakGame {
     }
 
     /**
-     * Switches turns between players.
+     * Switches the current player.
      */
-    private void switchTurns() {
+    public void switchPlayer() {
         currentPlayer = (currentPlayer == player1) ? player2 : player1;
     }
 
@@ -212,7 +212,7 @@ public class TakGame {
         player1.resetPieces(flatStones, 0, capstones);
         player2.resetPieces(flatStones, 0, capstones);
         // Optionally reset scores if you want scores to reset with a new game
-         player1.resetScore();
-         player2.resetScore();
+        player1.resetScore();
+        player2.resetScore();
     }
 }

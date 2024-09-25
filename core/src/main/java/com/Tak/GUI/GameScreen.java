@@ -26,20 +26,22 @@ import java.util.List;
  * It manages the 3D board, pieces, and user interface elements.
  */
 public class GameScreen implements Screen {
-    private TakGameMain game;
-    private PerspectiveCamera camera;
-    private ModelBatch modelBatch;
-    private Environment environment;
-    private ModelInstance boardInstance;
-    private Model boardModel;
-    private Model flatStoneModel;
-    private Model standingStoneModel;
-    private Model capstoneModel;
-    private Array<ModelInstance> pieceInstances;
-    private TakGame takGame;
-    private CameraInputController camController;
+    private TakGameMain game; // Reference to the main game class
+    private PerspectiveCamera camera; // 3D camera
+    private ModelBatch modelBatch; // Renders 3D models
+    private Environment environment; // Lighting and environment settings
+    private ModelInstance boardInstance; // Instance of the game board
+    private Model boardModel; // 3D model of the board
+    private Model flatStoneModel; // 3D model for Flat Stone
+    private Model standingStoneModel; // 3D model for Standing Stone
+    private Model capstoneModel; // 3D model for Capstone
+    private Array<ModelInstance> pieceInstances; // Instances of placed pieces
+    private ModelInstance hoverOutlineInstance; // Instance for hover outline
 
-    private int boardSize = 6; // Adjust as needed (e.g., 3, 4, 5, 6, 8)
+    private TakGame takGame; // Game logic handler
+    private CameraInputController camController; // Camera controls
+
+    private int boardSize = 5; // Board size (can be adjusted)
 
     // UI elements
     private Stage stage;
@@ -59,6 +61,9 @@ public class GameScreen implements Screen {
     private Image standingStoneImage;
     private Image capstoneImage;
 
+    // Selection variables
+    private Piece.PieceType selectedPieceType = null; // Currently selected piece type
+
     public GameScreen(TakGameMain game) {
         this.game = game;
         create();
@@ -76,8 +81,8 @@ public class GameScreen implements Screen {
 
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(boardSize * 2f, boardSize * 2f, boardSize * 2f); // Adjusted for larger board
-        camera.lookAt(boardSize / 2f, 0, boardSize / 2f);
+        camera.position.set(boardSize * 2f, boardSize * 2f, boardSize * 2f); // Position the camera
+        camera.lookAt(boardSize / 2f, 0, boardSize / 2f); // Look at the center of the board
         camera.near = 0.1f;
         camera.far = 100f;
         camera.update();
@@ -92,7 +97,13 @@ public class GameScreen implements Screen {
         environment.add(new DirectionalLight().set(1f, 1f, 1f, -1f, -0.8f, -0.2f));
 
         // Load the board texture with grid
-        Texture boardTexture = new Texture(Gdx.files.internal("board_texture.png")); // Ensure board_texture.png is in assets
+        Texture boardTexture;
+        try {
+            boardTexture = new Texture(Gdx.files.internal("board_texture.png")); // Ensure board_texture.png is in assets
+        } catch (Exception e) {
+            Gdx.app.error("GameScreen", "Failed to load board_texture.png", e);
+            throw new GdxRuntimeException("Missing asset: board_texture.png");
+        }
         Material boardMaterial = new Material(TextureAttribute.createDiffuse(boardTexture));
 
         // Create the game board model with texture
@@ -104,7 +115,7 @@ public class GameScreen implements Screen {
         boardInstance.transform.setToTranslation(boardSize / 2f, -0.1f, boardSize / 2f);
 
         // Create models for the pieces (placeholders)
-        flatStoneModel = modelBuilder.createCylinder(0.8f, 0.2f, 0.8f, 32,
+        flatStoneModel = modelBuilder.createSphere(0.8f, 0.2f, 0.8f, 32, 32,
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         standingStoneModel = modelBuilder.createBox(0.8f, 1f, 0.8f,
@@ -164,7 +175,7 @@ public class GameScreen implements Screen {
         scrollPane.setScrollbarsVisible(true);
         scrollPane.setForceScroll(false, true); // Disable horizontal scrolling
 
-        leftPanel.add(scrollPane).height(250).width(300).expandY().fillY().row(); // Increased height and width
+        leftPanel.add(scrollPane).height(300).width(300).expandY().fillY().row(); // Increased height and width
 
         // Create hotbar panel
         Table hotbarPanel = new Table();
@@ -205,6 +216,9 @@ public class GameScreen implements Screen {
         // Add listeners to buttons
         addButtonListeners();
 
+        // Add listeners to hotbar images
+        addHotbarListeners();
+
         // Set input processors
         Gdx.input.setInputProcessor(new InputMultiplexer(stage, camController, new InputHandler()));
 
@@ -229,6 +243,8 @@ public class GameScreen implements Screen {
                 currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
                 updatePlayerScores();
                 updateHotbarColors();
+                selectedPieceType = null;
+                removeHoverOutline();
             }
         });
 
@@ -239,6 +255,55 @@ public class GameScreen implements Screen {
                 Gdx.app.exit();
             }
         });
+    }
+
+    /**
+     * Adds listeners to the hotbar images for selecting/deselecting pieces.
+     */
+    private void addHotbarListeners() {
+        // Normal Stone
+        normalStoneImage.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                toggleSelection(Piece.PieceType.FLAT_STONE);
+            }
+        });
+
+        // Standing Stone
+        standingStoneImage.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                toggleSelection(Piece.PieceType.STANDING_STONE);
+            }
+        });
+
+        // Capstone
+        capstoneImage.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                toggleSelection(Piece.PieceType.CAPSTONE);
+            }
+        });
+    }
+
+    /**
+     * Toggles the selection of a piece type. Selecting a piece type if not selected,
+     * or deselecting if already selected.
+     *
+     * @param pieceType The piece type to toggle.
+     */
+    private void toggleSelection(Piece.PieceType pieceType) {
+        if (selectedPieceType == pieceType) {
+            // Deselect if already selected
+            selectedPieceType = null;
+            removeHoverOutline();
+            Gdx.app.log("GameScreen", "Deselected " + pieceType);
+        } else {
+            // Select the new piece type
+            selectedPieceType = pieceType;
+            removeHoverOutline();
+            Gdx.app.log("GameScreen", "Selected " + pieceType);
+        }
     }
 
     /**
@@ -296,6 +361,9 @@ public class GameScreen implements Screen {
                 }
             }
         }
+
+        // Re-add the board to ensure it's rendered beneath all pieces
+        pieceInstances.add(boardInstance);
     }
 
     /**
@@ -365,12 +433,21 @@ public class GameScreen implements Screen {
         capstoneModel.dispose();
         stage.dispose();
         skin.dispose();
+
+        // Dispose of any remaining hover outline model to prevent memory leaks
+        if (hoverOutlineInstance != null && hoverOutlineInstance.model != null) {
+            hoverOutlineInstance.model.dispose();
+        }
     }
 
-    @Override public void show() {}
-    @Override public void hide() {}
-    @Override public void pause() {}
-    @Override public void resume() {}
+    @Override
+    public void show() {}
+    @Override
+    public void hide() {}
+    @Override
+    public void pause() {}
+    @Override
+    public void resume() {}
 
     /**
      * Handles user input for placing pieces on the board.
@@ -380,27 +457,32 @@ public class GameScreen implements Screen {
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             if (button != Input.Buttons.LEFT) return false;
 
+            // If no piece is selected, do nothing
+            if (selectedPieceType == null) return false;
+
             // Convert screen coordinates to world coordinates
             Ray pickRay = camera.getPickRay(screenX, screenY);
             Vector3 intersection = new Vector3();
 
-            if (Intersector.intersectRayPlane(pickRay, new Plane(new Vector3(0, 1, 0), 0), intersection)) {
+            // Define the plane of the board
+            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(boardSize / 2f, 0, boardSize / 2f));
+
+            if (Intersector.intersectRayPlane(pickRay, boardPlane, intersection)) {
                 int x = (int) Math.floor(intersection.x);
                 int y = (int) Math.floor(intersection.z);
 
+                Gdx.app.log("GameScreen", "Clicked position: (" + x + ", " + y + ")");
+
                 if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
                     try {
-                        // For simplicity, place a flat stone of the current player
-                        Piece.PieceType pieceType = Piece.PieceType.FLAT_STONE;
-
-                        // Place the piece
-                        takGame.placePiece(x, y, pieceType);
+                        // Place the selected piece
+                        takGame.placePiece(x, y, selectedPieceType);
 
                         // Update the rendering
                         updatePieceInstances();
 
                         // Update the moves list and current player label
-                        String moveDescription = "Player " + takGame.getCurrentPlayer().getColor() + " placed at (" + x + ", " + y + ")";
+                        String moveDescription = "Player " + takGame.getCurrentPlayer().getColor() + " placed " + selectedPieceType + " at (" + x + ", " + y + ")";
                         movesArray.add(moveDescription);
                         movesList.setItems(movesArray.toArray(new String[0]));
                         currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
@@ -408,25 +490,106 @@ public class GameScreen implements Screen {
                         // Update player scores
                         updatePlayerScores();
 
-                        // Update hotbar colors based on the new current player
+                        // Switch player and update hotbar colors
+                        takGame.switchPlayer();
                         updateHotbarColors();
+
+                        // Deselect the piece
+                        selectedPieceType = null;
+                        removeHoverOutline();
 
                         // Check for game end
                         if (takGame.isGameEnded()) {
-                            // Handle game end (e.g., display a message)
-                            System.out.println("Game Over!");
                             showGameOverDialog();
                         }
                     } catch (InvalidMoveException e) {
                         // Handle invalid move (e.g., show a message)
-                        System.out.println("Invalid Move: " + e.getMessage());
+                        Gdx.app.error("GameScreen", "Invalid Move: " + e.getMessage(), e);
+                        showErrorDialog("Invalid Move: " + e.getMessage());
                     } catch (GameOverException e) {
                         // Handle game over
-                        System.out.println("Game Over: " + e.getMessage());
+                        Gdx.app.log("GameScreen", "Game Over: " + e.getMessage());
+                        showGameOverDialog();
                     }
+                } else {
+                    Gdx.app.log("GameScreen", "Clicked out of bounds: (" + x + ", " + y + ")");
                 }
+            } else {
+                Gdx.app.log("GameScreen", "No intersection with board plane.");
             }
             return true;
+        }
+
+        @Override
+        public boolean mouseMoved(int screenX, int screenY) {
+            if (selectedPieceType == null) {
+                removeHoverOutline();
+                return false;
+            }
+
+            // Convert screen coordinates to world coordinates
+            Ray pickRay = camera.getPickRay(screenX, screenY);
+            Vector3 intersection = new Vector3();
+
+            // Define the plane of the board
+            Plane boardPlane = new Plane(new Vector3(0, 1, 0), new Vector3(boardSize / 2f, 0, boardSize / 2f));
+
+            if (Intersector.intersectRayPlane(pickRay, boardPlane, intersection)) {
+                int x = (int) Math.floor(intersection.x);
+                int y = (int) Math.floor(intersection.z);
+
+                Gdx.app.log("GameScreen", "Hovering over: (" + x + ", " + y + ")");
+
+                if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+                    // Remove existing hover outline before creating a new one
+                    removeHoverOutline();
+
+                    // Create the hover outline
+                    hoverOutlineInstance = createHoverOutline(x, y);
+                    pieceInstances.add(hoverOutlineInstance);
+                    Gdx.app.log("GameScreen", "Created hover outline at: (" + x + ", " + y + ")");
+                } else {
+                    removeHoverOutline();
+                }
+            } else {
+                removeHoverOutline();
+            }
+
+            return false;
+        }
+
+        /**
+         * Creates a blue outline ModelInstance for the hovered square.
+         *
+         * @param x The x-coordinate of the square.
+         * @param y The y-coordinate of the square.
+         * @return The hover outline ModelInstance.
+         */
+        private ModelInstance createHoverOutline(int x, int y) {
+            ModelBuilder modelBuilder = new ModelBuilder();
+            // Removed modelBuilder.begin(); to prevent "Call end() first" exception
+
+            // Create a box slightly above the board to serve as an outline
+            Material outlineMaterial = new Material(ColorAttribute.createDiffuse(new Color(0, 0, 1, 0.3f)));
+            Model outlineModel = modelBuilder.createBox(1.0f, 0.05f, 1.0f,
+                outlineMaterial,
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+
+            ModelInstance outlineInstance = new ModelInstance(outlineModel);
+            outlineInstance.transform.setToTranslation(x + 0.5f, 0.1f, y + 0.5f);
+
+            return outlineInstance;
+        }
+    }
+
+    /**
+     * Removes the hover outline from the board.
+     */
+    private void removeHoverOutline() {
+        if (hoverOutlineInstance != null) {
+            pieceInstances.removeValue(hoverOutlineInstance, true);
+            hoverOutlineInstance = null;
+            Gdx.app.log("GameScreen", "Removed hover outline.");
         }
     }
 
@@ -507,93 +670,6 @@ public class GameScreen implements Screen {
         Texture texture = new Texture(pixmap);
         pixmap.dispose();
         return texture;
-    }
-
-    /**
-     * Creates a basic skin programmatically for UI elements.
-     *
-     * @return The created skin.
-     */
-    private Skin createBasicSkin() {
-        Skin skin = new Skin();
-
-        // Create a default font
-        BitmapFont font = new BitmapFont();
-        skin.add("default", font);
-
-        // Create button textures
-        Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-        pixmapUp.setColor(Color.GRAY);
-        pixmapUp.fill();
-        skin.add("button-up", new Texture(pixmapUp));
-
-        Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-        pixmapDown.setColor(Color.DARK_GRAY);
-        pixmapDown.fill();
-        skin.add("button-down", new Texture(pixmapDown));
-
-        pixmapUp.dispose();
-        pixmapDown.dispose();
-
-        // Create a TextButton style
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("button-up");
-        textButtonStyle.down = skin.newDrawable("button-down");
-        textButtonStyle.font = skin.getFont("default");
-        skin.add("default", textButtonStyle);
-
-        // Create a Label style
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default");
-        skin.add("default", labelStyle);
-
-        // Create a List style
-        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
-        listStyle.font = skin.getFont("default");
-        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
-        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
-        skin.add("default", listStyle);
-
-        // Create a ScrollPane style
-        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
-        skin.add("default", scrollPaneStyle);
-
-        // Create an ImageButton style (if needed in the future)
-        skin.add("default", new ImageButton.ImageButtonStyle());
-
-        return skin;
-    }
-
-    /**
-     * Updates the player scores displayed on the UI.
-     */
-    private void updatePlayerScores() {
-        // Retrieve scores from players
-        int playerBlackScore = takGame.getPlayer1().getScore();
-        int playerWhiteScore = takGame.getPlayer2().getScore();
-
-        // Update score labels
-        playerBlackScoreLabel.setText("Score: " + playerBlackScore);
-        playerWhiteScoreLabel.setText("Score: " + playerWhiteScore);
-    }
-
-    /**
-     * Updates the colors of the hotbar pieces based on the current player's turn.
-     */
-    private void updateHotbarColors() {
-        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
-
-        // Update normal stone color
-        ((TextureRegionDrawable) normalStoneImage.getDrawable()).getRegion().getTexture().dispose();
-        normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
-
-        // Update standing stone color
-        ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture().dispose();
-        standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
-
-        // Update capstone color
-        ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture().dispose();
-        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
     }
 
     /**
@@ -679,6 +755,102 @@ public class GameScreen implements Screen {
     }
 
     /**
+     * Creates a basic skin programmatically for UI elements.
+     *
+     * @return The created skin.
+     */
+    private Skin createBasicSkin() {
+        Skin skin = new Skin();
+
+        // Create a default font
+        BitmapFont font = new BitmapFont();
+        skin.add("default", font);
+
+        // Create button textures
+        Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapUp.setColor(Color.GRAY);
+        pixmapUp.fill();
+        skin.add("button-up", new Texture(pixmapUp));
+
+        Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapDown.setColor(Color.DARK_GRAY);
+        pixmapDown.fill();
+        skin.add("button-down", new Texture(pixmapDown));
+
+        pixmapUp.dispose();
+        pixmapDown.dispose();
+
+        // Create a TextButton style
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.newDrawable("button-up");
+        textButtonStyle.down = skin.newDrawable("button-down");
+        textButtonStyle.font = skin.getFont("default");
+        skin.add("default", textButtonStyle);
+
+        // Create a Label style
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = skin.getFont("default");
+        skin.add("default", labelStyle);
+
+        // Create a List style
+        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
+        listStyle.font = skin.getFont("default");
+        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
+        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
+        skin.add("default", listStyle);
+
+        // Create a ScrollPane style
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        skin.add("default", scrollPaneStyle);
+
+        // Create an ImageButton style (if needed in the future)
+        skin.add("default", new ImageButton.ImageButtonStyle());
+
+        return skin;
+    }
+
+    /**
+     * Updates the player scores displayed on the UI.
+     */
+    private void updatePlayerScores() {
+        // Retrieve scores from players
+        int playerBlackScore = takGame.getPlayer1().getScore();
+        int playerWhiteScore = takGame.getPlayer2().getScore();
+
+        // Update score labels
+        playerBlackScoreLabel.setText("Score: " + playerBlackScore);
+        playerWhiteScoreLabel.setText("Score: " + playerWhiteScore);
+    }
+
+    /**
+     * Updates the colors of the hotbar pieces based on the current player's turn.
+     */
+    private void updateHotbarColors() {
+        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
+
+        // Update normal stone color
+        if (normalStoneImage.getDrawable() != null) {
+            Texture oldTexture = ((TextureRegionDrawable) normalStoneImage.getDrawable()).getRegion().getTexture();
+            oldTexture.dispose();
+        }
+        normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
+
+        // Update standing stone color
+        if (standingStoneImage.getDrawable() != null) {
+            Texture oldTexture = ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture();
+            oldTexture.dispose();
+        }
+        standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
+
+        // Update capstone color
+        if (capstoneImage.getDrawable() != null) {
+            Texture oldTexture = ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture();
+            oldTexture.dispose();
+        }
+        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
+    }
+
+    /**
      * Shows a game over dialog with the final scores and winner information.
      */
     private void showGameOverDialog() {
@@ -714,9 +886,19 @@ public class GameScreen implements Screen {
     }
 
     /**
-     * Method to create a basic skin programmatically.
+     * Shows an error dialog with the specified message.
      *
-     * @return The created skin.
+     * @param errorMessage The error message to display.
      */
-
+    private void showErrorDialog(String errorMessage) {
+        Dialog dialog = new Dialog("Error", skin) {
+            @Override
+            protected void result(Object object) {
+                // Optional: Handle dialog result if needed
+            }
+        };
+        dialog.text(errorMessage);
+        dialog.button("OK");
+        dialog.show(stage);
+    }
 }
