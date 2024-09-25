@@ -298,30 +298,30 @@ public class GameScreen implements Screen {
     }
 
     /**
-     * Toggles the selection of a piece type. Selecting a piece type if not selected,
-     * or deselecting if already selected.
-     *
-     * @param pieceType The piece type to toggle.
-     */
-    private void toggleSelection(Piece.PieceType pieceType) {
-        // During first two moves, only flat stones can be selected
-        if (takGame.getMoveCount() < 2 && pieceType != Piece.PieceType.FLAT_STONE) {
-            showErrorDialog("Only flat stones can be placed in the first two moves.");
-            return;
-        }
-
-        if (selectedPieceType == pieceType) {
-            // Deselect if already selected
-            selectedPieceType = null;
-            removeHoverOutline();
-            Gdx.app.log("GameScreen", "Deselected " + pieceType);
-        } else {
-            // Select the new piece type
-            selectedPieceType = pieceType;
-            removeHoverOutline();
-            Gdx.app.log("GameScreen", "Selected " + pieceType);
-        }
+ * Toggles the selection of a piece type. Selecting a piece type if not selected,
+ * or deselecting if already selected.
+ *
+ * @param pieceType The piece type to toggle.
+ */
+private void toggleSelection(Piece.PieceType pieceType) {
+    // During first two moves, only flat stones can be selected
+    if (takGame.getMoveCount() < 2 && pieceType != Piece.PieceType.FLAT_STONE) {
+        showErrorDialog("Only flat stones can be placed in the first two moves.");
+        return;
     }
+
+    if (selectedPieceType == pieceType) {
+        // Deselect if already selected
+        selectedPieceType = null;
+        removeHoverOutline();
+        Gdx.app.log("GameScreen", "Deselected " + pieceType);
+    } else {
+        // Select the new piece type
+        selectedPieceType = pieceType;
+        removeHoverOutline();
+        Gdx.app.log("GameScreen", "Selected " + pieceType);
+    }
+}
 
 
 
@@ -797,59 +797,74 @@ public class GameScreen implements Screen {
     }
 
     /**
-     * Creates a basic skin programmatically for UI elements.
-     *
-     * @return The created skin.
-     */
-    private Skin createBasicSkin() {
-        Skin skin = new Skin();
+ * Creates a basic skin programmatically for UI elements.
+ *
+ * @return The created skin.
+ */
+private Skin createBasicSkin() {
+    Skin skin = new Skin();
 
-        // Create a default font
-        BitmapFont font = new BitmapFont();
-        skin.add("default", font);
+    // Create a default font
+    BitmapFont font = new BitmapFont();
+    skin.add("default-font", font);
 
-        // Create button textures
-        Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-        pixmapUp.setColor(Color.GRAY);
-        pixmapUp.fill();
-        skin.add("button-up", new Texture(pixmapUp));
+    // Create button textures
+    Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+    pixmapUp.setColor(Color.GRAY);
+    pixmapUp.fill();
+    skin.add("button-up", new Texture(pixmapUp));
 
-        Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-        pixmapDown.setColor(Color.DARK_GRAY);
-        pixmapDown.fill();
-        skin.add("button-down", new Texture(pixmapDown));
+    Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+    pixmapDown.setColor(Color.DARK_GRAY);
+    pixmapDown.fill();
+    skin.add("button-down", new Texture(pixmapDown));
 
-        pixmapUp.dispose();
-        pixmapDown.dispose();
+    pixmapUp.dispose();
+    pixmapDown.dispose();
 
-        // Create a TextButton style
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("button-up");
-        textButtonStyle.down = skin.newDrawable("button-down");
-        textButtonStyle.font = skin.getFont("default");
-        skin.add("default", textButtonStyle);
+    // Create a TextButton style
+    TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+    textButtonStyle.up = skin.newDrawable("button-up");
+    textButtonStyle.down = skin.newDrawable("button-down");
+    textButtonStyle.font = skin.getFont("default-font");
+    skin.add("default", textButtonStyle);
 
-        // Create a Label style
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default");
-        skin.add("default", labelStyle);
+    // Create a Label style
+    Label.LabelStyle labelStyle = new Label.LabelStyle();
+    labelStyle.font = skin.getFont("default-font");
+    skin.add("default", labelStyle);
 
-        // Create a List style
-        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
-        listStyle.font = skin.getFont("default");
-        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
-        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
-        skin.add("default", listStyle);
+    // Create a List style
+    com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
+    listStyle.font = skin.getFont("default-font");
+    listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
+    listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
+    skin.add("default", listStyle);
 
-        // Create a ScrollPane style
-        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
-        skin.add("default", scrollPaneStyle);
+    // Create a ScrollPane style
+    ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+    skin.add("default", scrollPaneStyle);
 
-        // Create an ImageButton style (if needed in the future)
-        skin.add("default", new ImageButton.ImageButtonStyle());
+    // Create an ImageButton style (if needed in the future)
+    skin.add("default", new ImageButton.ImageButtonStyle());
 
-        return skin;
-    }
+    // **Add WindowStyle for Dialogs**
+    // Create a window background
+    Pixmap windowPixmap = new Pixmap(400, 200, Pixmap.Format.RGBA8888);
+    windowPixmap.setColor(Color.LIGHT_GRAY);
+    windowPixmap.fillRectangle(0, 0, 500, 300);
+    skin.add("window-background", new Texture(windowPixmap));
+    windowPixmap.dispose();
+
+    // Define WindowStyle
+    Window.WindowStyle windowStyle = new Window.WindowStyle();
+    windowStyle.titleFont = skin.getFont("default-font");
+    windowStyle.background = skin.newDrawable("window-background");
+    skin.add("default", windowStyle);
+
+    return skin;
+}
+
 
     /**
      * Updates the player scores displayed on the UI.
@@ -910,64 +925,65 @@ public class GameScreen implements Screen {
 
 
     /**
-     * Shows a game over dialog with the final scores and winner information.
-     */
-    private void showGameOverDialog(Player winner) {
-        String message;
-        if (winner != null) {
-            message = winner.getColor() + " wins!\n" +
-                "Final Scores:\n" +
-                "Black: " + takGame.getPlayer1().getScore() + "\n" +
-                "White: " + takGame.getPlayer2().getScore();
-        } else {
-            message = "It's a tie!\n" +
-                "Final Scores:\n" +
-                "Black: " + takGame.getPlayer1().getScore() + "\n" +
-                "White: " + takGame.getPlayer2().getScore();
+ * Shows a game over dialog with the final scores and winner information.
+ *
+ * @param winner The player who won the game.
+ */
+private void showGameOverDialog(Player winner) {
+    String message;
+    if (winner != null) {
+        message = winner.getColor() + " wins!\n" +
+            "Final Scores:\n" +
+            "Black: " + takGame.getPlayer1().getScore() + "\n" +
+            "White: " + takGame.getPlayer2().getScore();
+    } else {
+        message = "It's a tie!\n" +
+            "Final Scores:\n" +
+            "Black: " + takGame.getPlayer1().getScore() + "\n" +
+            "White: " + takGame.getPlayer2().getScore();
+    }
+
+    Dialog dialog = new Dialog("Game Over", skin, "default") { // Specify "default" style
+        @Override
+        protected void result(Object object) {
+            if (object.equals("newGame")) {
+                takGame.resetGame();
+                updatePieceInstances();
+                movesArray.clear();
+                movesList.setItems(movesArray.toArray(new String[0]));
+                currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                updatePlayerScores();
+                selectedPieceType = null;
+                removeHoverOutline();
+                updateHotbarColors();
+            } else if (object.equals("continue")) {
+                // Continue the game without resetting
+            } else if (object.equals("exit")) {
+                Gdx.app.exit();
+            }
         }
+    };
+    dialog.text(message);
+    dialog.button("New Game", "newGame");
+    dialog.button("Continue", "continue");
+    dialog.button("Exit", "exit");
+    dialog.show(stage);
+}
 
-        Dialog dialog = new Dialog("Game Over", skin) {
-            @Override
-            protected void result(Object object) {
-                if (object.equals("newGame")) {
-                    takGame.resetGame();
-                    updatePieceInstances();
-                    movesArray.clear();
-                    movesList.setItems(movesArray.toArray(new String[0]));
-                    currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-                    updatePlayerScores();
-                    selectedPieceType = null;
-                    removeHoverOutline();
-                } else if (object.equals("continue")) {
-                    // Continue the game without resetting
-                } else if (object.equals("exit")) {
-                    Gdx.app.exit(); // This should only be called if the user chooses to exit
-                }
-            }
-        };
-        dialog.text(message);
-        dialog.button("New Game", "newGame");
-        dialog.button("Continue", "continue");
-        dialog.button("Exit", "exit");
-        dialog.show(stage);
-    }
-
-
-
-    /**
-     * Shows an error dialog with the specified message.
-     *
-     * @param errorMessage The error message to display.
-     */
-    private void showErrorDialog(String errorMessage) {
-        Dialog dialog = new Dialog("Error", skin) {
-            @Override
-            protected void result(Object object) {
-                // Optional: Handle dialog result if needed
-            }
-        };
-        dialog.text(errorMessage);
-        dialog.button("OK");
-        dialog.show(stage);
-    }
+/**
+ * Shows an error dialog with the specified message.
+ *
+ * @param errorMessage The error message to display.
+ */
+private void showErrorDialog(String errorMessage) {
+    Dialog dialog = new Dialog("Error", skin, "default") {
+        @Override
+        protected void result(Object object) {
+            // Optional: Handle dialog result if needed
+        }
+    };
+    dialog.text(errorMessage);
+    dialog.button("OK");
+    dialog.show(stage);
+}
 }
