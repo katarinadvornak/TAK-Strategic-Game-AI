@@ -64,6 +64,15 @@ public class GameScreen implements Screen {
     // Selection variables
     private Piece.PieceType selectedPieceType = null; // Currently selected piece type
 
+    private enum SelectionState {
+        SELECTING_SOURCE,
+        SELECTING_DIRECTION
+    }
+
+    private SelectionState selectionState = SelectionState.SELECTING_SOURCE;
+    private int sourceX, sourceY;
+
+
     public GameScreen(TakGameMain game) {
         this.game = game;
         create();
@@ -237,6 +246,19 @@ public class GameScreen implements Screen {
         updateHotbarColors();
 
     }
+    /**
+     * Updates the UI elements after resetting the game.
+     */
+    private void updateAfterGameReset() {
+        updatePieceInstances();
+        movesArray.clear();
+        movesList.setItems(movesArray.toArray(new String[0]));
+        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+        updatePlayerScores();
+        selectedPieceType = null;
+        removeHoverOutline();
+        updateHotbarColors();
+    }
 
     /**
      * Adds listeners to the New Game and Exit buttons.
@@ -246,15 +268,8 @@ public class GameScreen implements Screen {
         newGameButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                takGame.resetGame();
-                updatePieceInstances();
-                movesArray.clear();
-                movesList.setItems(movesArray.toArray(new String[0]));
-                currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-                updatePlayerScores();
-                selectedPieceType = null;
-                removeHoverOutline();
-                updateHotbarColors();
+                takGame.resetGame(true); // Reset both board and scores
+                updateAfterGameReset();
             }
         });
 
@@ -322,6 +337,94 @@ private void toggleSelection(Piece.PieceType pieceType) {
         Gdx.app.log("GameScreen", "Selected " + pieceType);
     }
 }
+
+    private void promptForDropCounts(int sourceX, int sourceY, Direction direction) {
+        TextField dropCountsField = new TextField("", skin);
+        Dialog dialog = new Dialog("Enter Drop Counts", skin) {
+            @Override
+            protected void result(Object object) {
+                if (object.equals("ok")) {
+                    String input = dropCountsField.getText();
+                    try {
+                        String[] tokens = input.split(",");
+                        int[] dropCounts = new int[tokens.length];
+                        for (int i = 0; i < tokens.length; i++) {
+                            dropCounts[i] = Integer.parseInt(tokens[i].trim());
+                        }
+                        // Attempt to move the stack
+                        takGame.moveStack(sourceX, sourceY, direction, dropCounts);
+
+                        // Update the rendering
+                        updatePieceInstances();
+
+                        // Update the moves list
+                        String moveDescription = "Player " + takGame.getOpponentPlayer().getColor() + " moved stack from (" + sourceX + ", " + sourceY + ") in direction " + direction;
+                        movesArray.add(moveDescription);
+                        movesList.setItems(movesArray.toArray(new String[0]));
+
+                        // Update UI elements
+                        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                        updateHotbarColors();
+
+                        // Check for game end
+                        if (takGame.isGameEnded()) {
+                            showGameOverDialog(takGame.getWinner());
+                        }
+                    } catch (InvalidMoveException e) {
+                        showErrorDialog("Invalid Move: " + e.getMessage());
+                    } catch (GameOverException e) {
+                        showGameOverDialog(takGame.getWinner());
+                    } catch (NumberFormatException e) {
+                        showErrorDialog("Invalid input for drop counts.");
+                    } catch (Exception e) {
+                        showErrorDialog("An unexpected error occurred: " + e.getMessage());
+                        e.printStackTrace();
+                    } finally {
+                        // Reset selection state
+                        selectionState = SelectionState.SELECTING_SOURCE;
+                        removeHighlight();
+                    }
+                } else {
+                    // Reset selection state if the dialog is canceled
+                    selectionState = SelectionState.SELECTING_SOURCE;
+                    removeHighlight();
+                }
+            }
+        };
+        dialog.getContentTable().add(new Label("Enter drop counts separated by commas:", skin));
+        dialog.getContentTable().row();
+        dialog.getContentTable().add(dropCountsField).width(200);
+        dialog.button("OK", "ok");
+        dialog.button("Cancel", "cancel");
+        dialog.show(stage);
+    }
+
+
+    private ModelInstance selectionHighlightInstance;
+
+    private void highlightSquare(int x, int y) {
+        removeHighlight();
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Material highlightMaterial = new Material(ColorAttribute.createDiffuse(new Color(1, 1, 0, 0.5f)));
+        highlightMaterial.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
+        Model highlightModel = modelBuilder.createBox(1.0f, 0.05f, 1.0f,
+            highlightMaterial,
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        selectionHighlightInstance = new ModelInstance(highlightModel);
+        selectionHighlightInstance.transform.setToTranslation(x + 0.5f, 0.1f, y + 0.5f);
+        pieceInstances.add(selectionHighlightInstance);
+    }
+
+    private void removeHighlight() {
+        if (selectionHighlightInstance != null) {
+            pieceInstances.removeValue(selectionHighlightInstance, true);
+            if (selectionHighlightInstance.model != null) {
+                selectionHighlightInstance.model.dispose();
+            }
+            selectionHighlightInstance = null;
+        }
+    }
+
 
 
 
@@ -484,9 +587,6 @@ private void toggleSelection(Piece.PieceType pieceType) {
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             if (button != Input.Buttons.LEFT) return false;
 
-            // If no piece is selected, do nothing
-            if (selectedPieceType == null) return false;
-
             // Convert screen coordinates to world coordinates
             Ray pickRay = camera.getPickRay(screenX, screenY);
             Vector3 intersection = new Vector3();
@@ -508,43 +608,93 @@ private void toggleSelection(Piece.PieceType pieceType) {
                 Gdx.app.log("GameScreen", "Clicked position: (" + x + ", " + y + ")");
 
                 if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-                    try {
-                        // Place the selected piece
-                        takGame.placePiece(x, y, selectedPieceType);
+                    if (selectedPieceType != null) {
+                        // **Handle placing a new piece**
+                        try {
+                            // Place the selected piece
+                            takGame.placePiece(x, y, selectedPieceType);
 
-                        // Update the rendering
-                        updatePieceInstances();
+                            // Update the rendering
+                            updatePieceInstances();
 
-                        // Update the moves list and current player label
-                        String moveDescription = "Player " + takGame.getCurrentPlayer().getColor() + " placed " + selectedPieceType + " at (" + x + ", " + y + ")";
-                        movesArray.add(moveDescription);
-                        movesList.setItems(movesArray.toArray(new String[0]));
-                        // Update player scores
-                        updatePlayerScores();
+                            // Update the moves list
+                            String moveDescription = "Player " + takGame.getOpponentPlayer().getColor() + " placed " + selectedPieceType + " at (" + x + ", " + y + ")";
+                            movesArray.add(moveDescription);
+                            movesList.setItems(movesArray.toArray(new String[0]));
 
-                        // Switch player and update hotbar colors
+                            // Update player scores
+                            updatePlayerScores();
 
-                        takGame.switchPlayer();
-                        currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-                        updateHotbarColors();
+                            // Deselect the piece
+                            selectedPieceType = null;
+                            removeHoverOutline();
 
+                            // Update current player label
+                            currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                            updateHotbarColors();
 
-                        // Deselect the piece
-                        selectedPieceType = null;
-                        removeHoverOutline();
-
-                        // Check for game end
-                        if (takGame.isGameEnded()) {
+                            // Check for game end
+                            if (takGame.isGameEnded()) {
+                                showGameOverDialog(takGame.getWinner());
+                            }
+                        } catch (InvalidMoveException e) {
+                            // Handle invalid move
+                            showErrorDialog("Invalid Move: " + e.getMessage());
+                        } catch (GameOverException e) {
+                            // Handle game over
                             showGameOverDialog(takGame.getWinner());
                         }
-                    } catch (InvalidMoveException e) {
-                        // Handle invalid move (e.g., show a message)
-                        Gdx.app.error("GameScreen", "Invalid Move: " + e.getMessage(), e);
-                        showErrorDialog("Invalid Move: " + e.getMessage());
-                    } catch (GameOverException e) {
-                        Gdx.app.log("GameScreen", "Game Over: " + e.getMessage());
-                        showGameOverDialog(takGame.getWinner());
-                        e.printStackTrace();
+                    } else {
+                        // **Handle moving stacks**
+                        if (selectionState == SelectionState.SELECTING_SOURCE) {
+                            // Check if there's a stack and the top piece belongs to the current player
+                            List<Piece> stack = takGame.getBoard().getBoardPosition(x, y);
+                            if (!stack.isEmpty() && stack.get(stack.size() - 1).getOwner() == takGame.getCurrentPlayer()) {
+                                sourceX = x;
+                                sourceY = y;
+                                selectionState = SelectionState.SELECTING_DIRECTION;
+                                highlightSquare(x, y);
+                            } else {
+                                showErrorDialog("Select a stack where your piece is on top.");
+                            }
+                        } else if (selectionState == SelectionState.SELECTING_DIRECTION) {
+                            // Calculate the difference between source and destination
+                            int dx = x - sourceX;
+                            int dy = y - sourceY;
+
+                            System.out.println("dx: " + dx + ", dy: " + dy);
+
+
+                            Direction direction = null;
+                            if (dx == 0 && dy > 0) {System.out.println("dx: " + dx + ", dy: " + dy);
+                                System.out.println("Direction calculated: " + direction);
+
+                                direction = Direction.UP;
+                            } else if (dx == 0 && dy < 0) {System.out.println("dx: " + dx + ", dy: " + dy);
+                                System.out.println("Direction calculated: " + direction);
+
+                                direction = Direction.DOWN;
+                            } else if (dy == 0 && dx > 0) {System.out.println("dx: " + dx + ", dy: " + dy);
+                                System.out.println("Direction calculated: " + direction);
+
+                                direction = Direction.RIGHT;
+                            } else if (dy == 0 && dx < 0) {System.out.println("dx: " + dx + ", dy: " + dy);
+                                System.out.println("Direction calculated: " + direction);
+
+                                direction = Direction.LEFT;
+                            } else {
+                                showErrorDialog("Invalid direction. Moves must be in a straight line.");
+                                return true;
+                            }
+
+
+                            // Prompt for drop counts
+                            promptForDropCounts(sourceX, sourceY, direction);
+
+                            // Reset selection state
+                            selectionState = SelectionState.SELECTING_SOURCE;
+                            removeHighlight();
+                        }
                     }
                 } else {
                     Gdx.app.log("GameScreen", "Clicked out of bounds: (" + x + ", " + y + ")");
@@ -553,7 +703,7 @@ private void toggleSelection(Piece.PieceType pieceType) {
                 Gdx.app.log("GameScreen", "No intersection with board plane.");
             }
             return true;
-        }
+    }
 
         @Override
         public boolean mouseMoved(int screenX, int screenY) {
@@ -801,69 +951,99 @@ private void toggleSelection(Piece.PieceType pieceType) {
  *
  * @return The created skin.
  */
-private Skin createBasicSkin() {
-    Skin skin = new Skin();
+    private Skin createBasicSkin() {
+        Skin skin = new Skin();
 
-    // Create a default font
-    BitmapFont font = new BitmapFont();
-    skin.add("default-font", font);
+        // Create a default font
+        BitmapFont font = new BitmapFont();
+        skin.add("default-font", font);
 
-    // Create button textures
-    Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-    pixmapUp.setColor(Color.GRAY);
-    pixmapUp.fill();
-    skin.add("button-up", new Texture(pixmapUp));
+        // Create button textures
+        Pixmap pixmapUp = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapUp.setColor(Color.GRAY);
+        pixmapUp.fill();
+        skin.add("button-up", new Texture(pixmapUp));
 
-    Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
-    pixmapDown.setColor(Color.DARK_GRAY);
-    pixmapDown.fill();
-    skin.add("button-down", new Texture(pixmapDown));
+        Pixmap pixmapDown = new Pixmap(150, 60, Pixmap.Format.RGBA8888);
+        pixmapDown.setColor(Color.DARK_GRAY);
+        pixmapDown.fill();
+        skin.add("button-down", new Texture(pixmapDown));
 
-    pixmapUp.dispose();
-    pixmapDown.dispose();
+        pixmapUp.dispose();
+        pixmapDown.dispose();
 
-    // Create a TextButton style
-    TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-    textButtonStyle.up = skin.newDrawable("button-up");
-    textButtonStyle.down = skin.newDrawable("button-down");
-    textButtonStyle.font = skin.getFont("default-font");
-    skin.add("default", textButtonStyle);
+        // Create a TextButton style
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.newDrawable("button-up");
+        textButtonStyle.down = skin.newDrawable("button-down");
+        textButtonStyle.font = skin.getFont("default-font");
+        skin.add("default", textButtonStyle);
 
-    // Create a Label style
-    Label.LabelStyle labelStyle = new Label.LabelStyle();
-    labelStyle.font = skin.getFont("default-font");
-    skin.add("default", labelStyle);
+        // Create a Label style
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = skin.getFont("default-font");
+        skin.add("default", labelStyle);
 
-    // Create a List style
-    com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
-    listStyle.font = skin.getFont("default-font");
-    listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
-    listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
-    skin.add("default", listStyle);
+        // Create a List style
+        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
+        listStyle.font = skin.getFont("default-font");
+        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
+        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
+        skin.add("default", listStyle);
 
-    // Create a ScrollPane style
-    ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
-    skin.add("default", scrollPaneStyle);
+        // Create a ScrollPane style
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        skin.add("default", scrollPaneStyle);
 
-    // Create an ImageButton style (if needed in the future)
-    skin.add("default", new ImageButton.ImageButtonStyle());
+        // **Add Drawables for TextField before using them**
 
-    // **Add WindowStyle for Dialogs**
-    // Create a window background
-    Pixmap windowPixmap = new Pixmap(400, 200, Pixmap.Format.RGBA8888);
-    windowPixmap.setColor(Color.LIGHT_GRAY);
-    windowPixmap.fillRectangle(0, 0, 500, 300);
-    skin.add("window-background", new Texture(windowPixmap));
-    windowPixmap.dispose();
+        // Create Drawable for cursor
+        Pixmap cursorPixmap = new Pixmap(1, 20, Pixmap.Format.RGBA8888);
+        cursorPixmap.setColor(Color.WHITE);
+        cursorPixmap.fill();
+        skin.add("cursor", new Texture(cursorPixmap));
+        cursorPixmap.dispose();
 
-    // Define WindowStyle
-    Window.WindowStyle windowStyle = new Window.WindowStyle();
-    windowStyle.titleFont = skin.getFont("default-font");
-    windowStyle.background = skin.newDrawable("window-background");
-    skin.add("default", windowStyle);
+        // Create Drawable for selection
+        Pixmap selectionPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        selectionPixmap.setColor(0.5f, 0.5f, 1, 0.5f);
+        selectionPixmap.fill();
+        skin.add("selection", new Texture(selectionPixmap));
+        selectionPixmap.dispose();
 
-    return skin;
-}
+        // Create Drawable for textfield background
+        Pixmap textFieldBackgroundPixmap = new Pixmap(150, 30, Pixmap.Format.RGBA8888);
+        textFieldBackgroundPixmap.setColor(Color.DARK_GRAY);
+        textFieldBackgroundPixmap.fill();
+        skin.add("textfield-background", new Texture(textFieldBackgroundPixmap));
+        textFieldBackgroundPixmap.dispose();
+
+        // **Add TextFieldStyle**
+        TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
+        textFieldStyle.font = skin.getFont("default-font");
+        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.cursor = skin.newDrawable("cursor");
+        textFieldStyle.selection = skin.newDrawable("selection");
+        textFieldStyle.background = skin.newDrawable("textfield-background");
+        skin.add("default", textFieldStyle);
+
+        // Add WindowStyle for Dialogs
+        // Create a window background
+        Pixmap windowPixmap = new Pixmap(400, 200, Pixmap.Format.RGBA8888);
+        windowPixmap.setColor(Color.LIGHT_GRAY);
+        windowPixmap.fillRectangle(0, 0, 400, 200);
+        skin.add("window-background", new Texture(windowPixmap));
+        windowPixmap.dispose();
+
+        // Define WindowStyle
+        Window.WindowStyle windowStyle = new Window.WindowStyle();
+        windowStyle.titleFont = skin.getFont("default-font");
+        windowStyle.background = skin.newDrawable("window-background");
+        skin.add("default", windowStyle);
+
+        return skin;
+    }
+
 
 
     /**
@@ -898,30 +1078,19 @@ private Skin createBasicSkin() {
         }
 
         // Update normal stone color
-        if (normalStoneImage.getDrawable() != null) {
-            Texture oldTexture = ((TextureRegionDrawable) normalStoneImage.getDrawable()).getRegion().getTexture();
-            oldTexture.dispose();
-        }
         normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
         normalStoneImage.invalidate();
 
         // Update standing stone and capstone colors only if they are visible
         if (takGame.getMoveCount() >= 2) {
-            if (standingStoneImage.getDrawable() != null) {
-                Texture oldTexture = ((TextureRegionDrawable) standingStoneImage.getDrawable()).getRegion().getTexture();
-                oldTexture.dispose();
-            }
             standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
             standingStoneImage.invalidate();
 
-            if (capstoneImage.getDrawable() != null) {
-                Texture oldTexture = ((TextureRegionDrawable) capstoneImage.getDrawable()).getRegion().getTexture();
-                oldTexture.dispose();
-            }
             capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
             capstoneImage.invalidate();
         }
     }
+
 
 
     /**
@@ -929,46 +1098,41 @@ private Skin createBasicSkin() {
  *
  * @param winner The player who won the game.
  */
-private void showGameOverDialog(Player winner) {
-    String message;
-    if (winner != null) {
-        message = winner.getColor() + " wins!\n" +
-            "Final Scores:\n" +
-            "Black: " + takGame.getPlayer1().getScore() + "\n" +
-            "White: " + takGame.getPlayer2().getScore();
-    } else {
-        message = "It's a tie!\n" +
-            "Final Scores:\n" +
-            "Black: " + takGame.getPlayer1().getScore() + "\n" +
-            "White: " + takGame.getPlayer2().getScore();
+    private void showGameOverDialog(Player winner) {
+        String message;
+        if (winner != null) {
+            message = winner.getColor() + " wins!\n" +
+                "Final Scores:\n" +
+                "Black: " + takGame.getPlayer1().getScore() + "\n" +
+                "White: " + takGame.getPlayer2().getScore();
+        } else {
+            message = "It's a tie!\n" +
+                "Final Scores:\n" +
+                "Black: " + takGame.getPlayer1().getScore() + "\n" +
+                "White: " + takGame.getPlayer2().getScore();
+        }
+
+        Dialog dialog = new Dialog("Game Over", skin, "default") {
+            @Override
+            protected void result(Object object) {
+                if (object.equals("newGame")) {
+                    takGame.resetGame(true); // Reset both board and scores
+                    updateAfterGameReset();
+                } else if (object.equals("continue")) {
+                    takGame.resetGame(false); // Reset board but keep scores
+                    updateAfterGameReset();
+                } else if (object.equals("exit")) {
+                    Gdx.app.exit();
+                }
+            }
+        };
+        dialog.text(message);
+        dialog.button("New Game", "newGame");
+        dialog.button("Continue", "continue");
+        dialog.button("Exit", "exit");
+        dialog.show(stage);
     }
 
-    Dialog dialog = new Dialog("Game Over", skin, "default") { // Specify "default" style
-        @Override
-        protected void result(Object object) {
-            if (object.equals("newGame")) {
-                takGame.resetGame();
-                updatePieceInstances();
-                movesArray.clear();
-                movesList.setItems(movesArray.toArray(new String[0]));
-                currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-                updatePlayerScores();
-                selectedPieceType = null;
-                removeHoverOutline();
-                updateHotbarColors();
-            } else if (object.equals("continue")) {
-                // Continue the game without resetting
-            } else if (object.equals("exit")) {
-                Gdx.app.exit();
-            }
-        }
-    };
-    dialog.text(message);
-    dialog.button("New Game", "newGame");
-    dialog.button("Continue", "continue");
-    dialog.button("Exit", "exit");
-    dialog.show(stage);
-}
 
 /**
  * Shows an error dialog with the specified message.

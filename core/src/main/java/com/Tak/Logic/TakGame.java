@@ -1,5 +1,9 @@
 package com.Tak.Logic;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * The TakGame class manages the overall game flow.
  * It handles player turns, move execution, and checks for win conditions.
@@ -30,7 +34,7 @@ public class TakGame {
         this.player2 = new Player(Player.Color.WHITE, flatStones, standingStones, capstones);
 
         // Initialize currentPlayer to Player 2 (White)
-        this.currentPlayer = player2;
+        this.currentPlayer = player1;
 
         this.winChecker = new WinChecker();
         this.gameEnded = false;
@@ -146,10 +150,10 @@ public class TakGame {
             pieceOwner = getOpponentPlayer();
         }
 
-        if (currentPlayer.hasPiecesLeft(pieceType)) {
+        if (pieceOwner.hasPiecesLeft(pieceType)) {
             Piece piece = new Piece(pieceType, pieceOwner);
             board.placePiece(x, y, piece, currentPlayer);
-            currentPlayer.decrementPiece(pieceType);
+            pieceOwner.decrementPiece(pieceType); // Decrement from the actual owner
             moveCount++;
             checkWinConditions();
             if (!gameEnded) {
@@ -160,12 +164,13 @@ public class TakGame {
         }
     }
 
+
     /**
      * Gets the opponent player.
      *
      * @return The opponent player.
      */
-    private Player getOpponentPlayer() {
+    public Player getOpponentPlayer() {
         return (currentPlayer == player1) ? player2 : player1;
     }
 
@@ -245,9 +250,9 @@ public class TakGame {
      * Resets the game to its initial state.
      * Optionally resets player scores if desired.
      */
-    public void resetGame() {
+    public void resetGame(boolean resetScores) {
         board.resetBoard();
-        currentPlayer = player2; // Start with White as per Tak rules
+        currentPlayer = player1; // Start with Black as per Tak rules
         gameEnded = false;
         moveCount = 0;
         int flatStones = calculateFlatStones(board.getSize());
@@ -255,8 +260,124 @@ public class TakGame {
         int capstones = calculateCapstones(board.getSize());
         player1.resetPieces(flatStones, standingStones, capstones);
         player2.resetPieces(flatStones, standingStones, capstones);
-        // Optionally reset scores if you want scores to reset with a new game
-        // player1.resetScore();
-        // player2.resetScore();
+        if (resetScores) {
+            player1.resetScore();
+            player2.resetScore();
+        }
     }
+
+    public void moveStack(int startX, int startY, Direction direction, int[] dropCounts) throws InvalidMoveException, GameOverException {
+        System.out.println("moveStack called with startX: " + startX + ", startY: " + startY + ", direction: " + direction + ", dropCounts: " + Arrays.toString(dropCounts));
+
+        if (gameEnded) {
+            throw new GameOverException("Game has ended.");
+        }
+
+        List<Piece> stack = board.getBoardPosition(startX, startY);
+        if (stack.isEmpty()) {
+            throw new InvalidMoveException("No pieces to move at the selected position.");
+        }
+
+        Piece topPiece = stack.get(stack.size() - 1);
+        if (topPiece.getOwner() != currentPlayer) {
+            throw new InvalidMoveException("You can only move stacks where your piece is on top.");
+        }
+
+        int totalPiecesToMove = 0;
+        for (int count : dropCounts) {
+            if (count <= 0) {
+                throw new InvalidMoveException("Drop counts must be positive integers.");
+            }
+            totalPiecesToMove += count;
+        }
+
+        int maxCarryLimit = Math.min(5, stack.size()); // Max pieces that can be carried
+        if (totalPiecesToMove > maxCarryLimit) {
+            throw new InvalidMoveException("Cannot move that many pieces.");
+        }
+
+        // Calculate movement increments
+        int dx = 0, dy = 0;
+        switch (direction) {
+            case UP: dy = 1; break;
+            case DOWN: dy = -1; break;
+            case LEFT: dx = -1; break;
+            case RIGHT: dx = 1; break;
+            default:
+                throw new InvalidMoveException("Invalid direction.");
+        }
+
+        int x = startX;
+        int y = startY;
+        List<Piece> movingPieces = new ArrayList<>(stack.subList(stack.size() - totalPiecesToMove, stack.size()));
+        stack.subList(stack.size() - totalPiecesToMove, stack.size()).clear();
+
+        for (int i = 0; i < dropCounts.length; i++) {
+            int dropCount = dropCounts[i];
+
+            x += dx;
+            y += dy;
+
+            if (!board.isValidPosition(x, y)) {
+                throw new InvalidMoveException("Move goes off the board.");
+            }
+
+            if (movingPieces.isEmpty()) {
+                throw new InvalidMoveException("No more pieces to drop.");
+            }
+
+            if (dropCount > movingPieces.size()) {
+                throw new InvalidMoveException("Not enough pieces to drop.");
+            }
+
+            List<Piece> destinationStack = board.getBoardPosition(x, y);
+
+            // Enforce max stack height
+            if (destinationStack.size() + dropCount > 5) {
+                throw new InvalidMoveException("Cannot exceed maximum stack height of 5.");
+            }
+
+            // Handle capstone crushing standing stones
+            Piece topDestinationPiece = destinationStack.isEmpty() ? null : destinationStack.get(destinationStack.size() - 1);
+
+            if (topDestinationPiece != null) {
+                if (topDestinationPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
+                    if (movingPieces.get(0).getPieceType() == Piece.PieceType.CAPSTONE && dropCount == 1) {
+                        // Capstone crushes the standing stone
+                        topDestinationPiece.setPieceType(Piece.PieceType.FLAT_STONE);
+                    } else {
+                        throw new InvalidMoveException("Cannot move onto a standing stone unless dropping a capstone.");
+                    }
+                } else if (topDestinationPiece.getPieceType() == Piece.PieceType.CAPSTONE) {
+                    throw new InvalidMoveException("Cannot move onto a capstone.");
+                }
+            }
+
+            // Drop pieces
+            List<Piece> piecesToDrop = new ArrayList<>(movingPieces.subList(0, dropCount));
+            destinationStack.addAll(piecesToDrop);
+            movingPieces.subList(0, dropCount).clear();
+
+            // If all pieces have been dropped, break out of the loop
+            if (movingPieces.isEmpty()) {
+                break;
+            }
+        }
+
+        if (!movingPieces.isEmpty()) {
+            throw new InvalidMoveException("All pieces must be dropped during the move.");
+        }
+
+        moveCount++;
+        checkWinConditions();
+        if (!gameEnded) {
+            switchPlayer();
+        }
+        System.out.println("Move completed successfully.");
+
+    }
+
+
+
+
 }

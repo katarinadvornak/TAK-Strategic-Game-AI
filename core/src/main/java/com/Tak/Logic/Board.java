@@ -54,6 +54,10 @@ public class Board {
         }
     }
 
+    public boolean isValidPosition(int x, int y) {
+        return x >= 0 && x < size && y >= 0 && y < size;
+    }
+
     /**
      * Places a piece on the board at a specific location.
      * Checks if the move is valid and if the piece can be placed.
