@@ -99,6 +99,16 @@ public class GameScreen implements Screen {
         // Camera controller for input
         camController = new CameraInputController(camera);
 
+        // Configure the camController to use the right mouse button for rotation
+        camController.rotateButton = Input.Buttons.RIGHT;
+
+// Optionally, configure other buttons
+        camController.translateButton = Input.Buttons.MIDDLE; // For panning with the middle mouse button
+        camController.forwardButton = -1; // Disable moving forward/backward with the mouse wheel
+
+// Set the scroll factor if you want to zoom in/out with the mouse wheel
+        camController.scrollFactor = -0.1f;
+
         // Initialize ModelBatch and Environment
         modelBatch = new ModelBatch();
         environment = new Environment();
