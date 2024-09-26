@@ -124,6 +124,11 @@ public class UIManager {
         windowStyle.titleFont = skin.getFont("default-font");
         windowStyle.background = skin.newDrawable("window-background");
         skin.add("default", windowStyle);
+        // **Add the "dialog" WindowStyle**
+        Window.WindowStyle dialogStyle = new Window.WindowStyle();
+        dialogStyle.titleFont = skin.getFont("default-font");
+        dialogStyle.background = skin.newDrawable("window-background");
+        skin.add("dialog", dialogStyle); // Register the "dialog" style
     }
 
     private void createUIElements() {
