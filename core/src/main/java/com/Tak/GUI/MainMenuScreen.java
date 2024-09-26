@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 /**
@@ -17,7 +18,9 @@ public class MainMenuScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private TextButton startGameButton;
+    private TextButton rulesButton;
     private TextButton exitButton;
+    private Label titleLabel;
 
     public MainMenuScreen(TakGameMain game) {
         this.game = game;
@@ -31,30 +34,43 @@ public class MainMenuScreen implements Screen {
         // Set up the stage and skin
         stage = new Stage(new ScreenViewport());
         skin = createBasicSkin();
-
+    
+        // Create the title label
+        titleLabel = new Label("TAK", skin, "title"); // Use the title style for the label
+        titleLabel.setAlignment(Align.center); // Center the text (optional)
+    
         // Create buttons
         startGameButton = new TextButton("Start Game", skin);
+        rulesButton = new TextButton("Game Rules", skin);
         exitButton = new TextButton("Exit", skin);
-
+    
         // Set up the table layout
         Table table = new Table();
         table.setFillParent(true);
         table.center();
-
+    
+        // Add the title label to the table
+        table.add(titleLabel).padBottom(30); // Add some padding below the title
+        table.row(); // Move to the next row
+    
         // Add buttons to the table
         table.add(startGameButton).width(200).height(60).pad(10);
         table.row();
+        table.add(rulesButton).width(200).height(60).pad(10);
+        table.row();
         table.add(exitButton).width(200).height(60).pad(10);
-
+    
         // Add the table to the stage
         stage.addActor(table);
-
+    
         // Set input processor
         Gdx.input.setInputProcessor(stage);
-
+    
         // Add listeners to buttons
         addButtonListeners();
     }
+
+    
 
     /**
      * Adds listeners to the Start Game and Exit buttons.
@@ -65,6 +81,14 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 showGameModeSelection();
+            }
+        });
+
+        // Listener for Rules button
+        rulesButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                showGameRules(); 
             }
         });
 
@@ -115,11 +139,16 @@ public class MainMenuScreen implements Screen {
      */
     private Skin createBasicSkin() {
         Skin skin = new Skin();
-
+    
         // Create a default font
         BitmapFont font = new BitmapFont();
         skin.add("default-font", font);
-
+    
+        // Create a larger font for the title
+        BitmapFont titleFont = new BitmapFont();
+        titleFont.getData().setScale(3); // Scale the font size to make it larger
+        skin.add("title-font", titleFont); // Add the title font to the skin
+    
         // Create button textures
         Pixmap pixmap = new Pixmap(200, 60, Pixmap.Format.RGBA8888);
         pixmap.setColor(Color.GRAY);
@@ -127,27 +156,52 @@ public class MainMenuScreen implements Screen {
         Texture buttonTexture = new Texture(pixmap);
         skin.add("button-up", buttonTexture);
         pixmap.dispose();
-
+    
         // TextButton style
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
         textButtonStyle.up = skin.newDrawable("button-up");
         textButtonStyle.down = skin.newDrawable("button-up", Color.DARK_GRAY);
         textButtonStyle.font = skin.getFont("default-font");
         skin.add("default", textButtonStyle);
-
-        // Label style
+    
+        // Label style for regular labels
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = skin.getFont("default-font");
         skin.add("default", labelStyle);
-
+    
+        // Label style for the title
+        Label.LabelStyle titleStyle = new Label.LabelStyle();
+        titleStyle.font = skin.getFont("title-font");
+        skin.add("title", titleStyle); // Add the title style to the skin
+    
         // Window style (used for Dialog)
         Window.WindowStyle windowStyle = new Window.WindowStyle();
         windowStyle.background = skin.newDrawable("button-up", Color.DARK_GRAY);
         windowStyle.titleFont = skin.getFont("default-font");
         skin.add("dialog", windowStyle);
-
+    
         return skin;
     }
+   
+    private void showGameRules(){
+        Dialog dialog = new Dialog("Game Rules", skin, "dialog");
+        dialog.text("Here are the rules of the game:\n\n" + getRulesText()); // Replace getRulesText() with actual rules
+        dialog.button("OK");
+        dialog.show(stage);
+    }
+
+    private String getRulesText() {
+        return "1. Players take turns placing tiles on the board. No standing tiles or cap (hat) tiles can be placed during the first round.\n"
+             + "2. Players can stack flat tiles or standing tiles on top of flat tiles. Cap tiles cannot be stacked on top of other tiles.\n"
+             + "3. Cap tiles can flatten standing tiles, turning them into flat tiles.\n"
+             + "4. Movement is orthogonal (along rows or columns). Only the top tile of a stack can be moved. Multiple tiles can be moved, but at least one must be placed on each square along the path.\n"
+             + "5. Victory Conditions:\n"
+             + "   - Road Victory: Create a continuous orthogonal line of flat or cap tiles connecting one side of the board to the opposite side.\n"
+             + "   - Flat Victory: If the board is full and no road victory is achieved, the player with the most visible flat tiles wins.\n"
+             + "6. Each turn, players must either place a tile or move a tile/stack. Only cap tiles can flatten standing tiles and become part of a road.\n"
+             + "7. The game ends when one of the victory conditions is met.";
+    }
+    
 
     @Override
     public void show() {

@@ -4,7 +4,11 @@ import com.Tak.Logic.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 /**
@@ -22,6 +26,8 @@ public class GameScreen implements Screen {
     private GameInputHandler inputHandler;
 
     public Piece.PieceType selectedPieceType;
+
+    private TextButton rulesButton;
 
     public int moveCount = 0;
 
@@ -66,8 +72,48 @@ public class GameScreen implements Screen {
         // Set input processors
         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
 
+
+        addRulesButton();        
         // After setting up UI elements
         uiManager.updateHotbarColors();
+    }
+
+     private void addRulesButton() {
+        rulesButton = new TextButton("Rules", uiManager.getSkin());
+
+        Table table = new Table();
+        table.top().left(); 
+        table.setFillParent(true);
+
+        table.add(rulesButton).pad(10);
+
+        uiManager.getStage().addActor(table);
+
+        rulesButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                showRulesDialog(); 
+            }
+        });
+    }
+
+    private void showRulesDialog() {
+        Dialog dialog = new Dialog("Rules", uiManager.getSkin(), "dialog");
+        dialog.text(getRulesText());
+        dialog.button("OK");
+        dialog.show(uiManager.getStage());
+    }
+
+    private String getRulesText() {
+        return "1. Players take turns placing tiles on the board. No standing tiles or cap (hat) tiles can be placed during the first round.\n"
+             + "2. Players can stack flat tiles or standing tiles on top of flat tiles. Cap tiles cannot be stacked on top of other tiles.\n"
+             + "3. Cap tiles can flatten standing tiles, turning them into flat tiles.\n"
+             + "4. Movement is orthogonal (along rows or columns). Only the top tile of a stack can be moved. Multiple tiles can be moved, but at least one must be placed on each square along the path.\n"
+             + "5. Victory Conditions:\n"
+             + "   - Road Victory: Create a continuous orthogonal line of flat or cap tiles connecting one side of the board to the opposite side.\n"
+             + "   - Flat Victory: If the board is full and no road victory is achieved, the player with the most visible flat tiles wins.\n"
+             + "6. Each turn, players must either place a tile or move a tile/stack. Only cap tiles can flatten standing tiles and become part of a road.\n"
+             + "7. The game ends when one of the victory conditions is met.";
     }
 
     @Override
