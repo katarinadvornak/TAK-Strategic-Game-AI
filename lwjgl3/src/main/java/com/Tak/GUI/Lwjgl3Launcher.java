@@ -17,37 +17,18 @@ public class Lwjgl3Launcher {
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {
         Lwjgl3ApplicationConfiguration configuration = new Lwjgl3ApplicationConfiguration();
         configuration.setTitle("Tak");
-
-        // **Set HDPI Mode for Retina Displays on macOS**
-        configuration.setHdpiMode(Lwjgl3ApplicationConfiguration.HdpiMode.Pixels);
-
-        // **Fetch the Primary Monitor's Display Mode**
-        com.badlogic.gdx.Graphics.DisplayMode currentDisplayMode = Lwjgl3ApplicationConfiguration.getDisplayMode();
-        int screenWidth = currentDisplayMode.width;
-        int screenHeight = currentDisplayMode.height;
-
-        // **Set Windowed Mode to Screen Resolution**
-        configuration.setWindowedMode(screenWidth, screenHeight);
-
-        // **Maximize the Window Without Entering Exclusive Fullscreen**
-        configuration.setMaximized(true);
-
-        // **Optional: Prevent Window Resizing**
-        configuration.setResizable(false); // Set to true if you want the window to be resizable
-
-        // **Optional: Ensure Window Decorations (Title Bar, Borders) are Visible**
-        configuration.setDecorated(true); // Set to false to remove window decorations
-
-        // **Enable VSync to Limit FPS and Prevent Screen Tearing**
+        //// Vsync limits the frames per second to what your hardware can display, and helps eliminate
+        //// screen tearing. This setting doesn't always work on Linux, so the line after is a safeguard.
         configuration.useVsync(true);
-
-        // **Set Foreground FPS to Match Refresh Rate (+1 as a Safeguard)**
-        int refreshRate = currentDisplayMode.refreshRate > 0 ? currentDisplayMode.refreshRate : 60;
-        configuration.setForegroundFPS(refreshRate + 1);
-
-        // **Set Window Icons (Optional)**
+        //// Limits FPS to the refresh rate of the currently active monitor, plus 1 to try to match fractional
+        //// refresh rates. The Vsync setting above should limit the actual FPS to match the monitor.
+        configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate + 1);
+        //// If you remove the above line and set Vsync to false, you can get unlimited FPS, which can be
+        //// useful for testing performance, but can also be very stressful to some hardware.
+        //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
+        configuration.setWindowedMode(640, 480);
+        //// You can change these files; they are in lwjgl3/src/main/resources/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
-
         return configuration;
     }
 }
