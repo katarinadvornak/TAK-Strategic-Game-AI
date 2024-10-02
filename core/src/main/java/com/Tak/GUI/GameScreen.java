@@ -41,7 +41,7 @@ public class GameScreen implements Screen {
         takGame = new TakGame(boardSize);
     
         // **Remove or comment out the fullscreen mode setting**
-        // Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
     
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -74,7 +74,7 @@ public class GameScreen implements Screen {
         addRulesButton();        
         // After setting up UI elements
         uiManager.updateHotbarColors();
-    }
+    }    
     
 
      private void addRulesButton() {
