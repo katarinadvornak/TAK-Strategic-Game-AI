@@ -39,11 +39,10 @@ public class GameScreen implements Screen {
     public void create() {
         // Initialize the game logic
         takGame = new TakGame(boardSize);
-
-        // Open the game in full screen
-        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-
-
+    
+        // **Remove or comment out the fullscreen mode setting**
+        // Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+    
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(boardSize * 2f, boardSize * 2f, boardSize * 2f); // Position the camera
@@ -51,32 +50,32 @@ public class GameScreen implements Screen {
         camera.near = 0.1f;
         camera.far = 100f;
         camera.update();
-
+    
         // Initialize the camera controller
         camController = new CameraInputController(camera);
         camController.rotateButton = Input.Buttons.RIGHT; // Use right mouse button for rotation
         camController.translateButton = Input.Buttons.MIDDLE; // For panning
         camController.scrollFactor = -0.1f; // Zoom in/out with mouse wheel
-
+    
         // Initialize Renderer
         renderer = new GameRenderer(camera, boardSize, takGame);
         renderer.updatePieceInstances();
-
+    
         // Initialize UI Manager
         uiManager = new UIManager(takGame, this);
         uiManager.getStage().setViewport(new ScreenViewport());
-
+    
         // Initialize Input Handler
         inputHandler = new GameInputHandler(camera, takGame, renderer, uiManager, this);
-
+    
         // Set input processors
         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
-
-
+    
         addRulesButton();        
         // After setting up UI elements
         uiManager.updateHotbarColors();
     }
+    
 
      private void addRulesButton() {
         rulesButton = new TextButton("Rules", uiManager.getSkin());
