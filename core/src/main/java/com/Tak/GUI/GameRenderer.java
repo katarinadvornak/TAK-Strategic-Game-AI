@@ -36,6 +36,9 @@ public class GameRenderer {
     public ModelInstance hoverOutlineInstance;
     public ModelInstance selectionHighlightInstance;
 
+    // Define tile size for consistent scaling (assuming 1 unit per tile)
+    private final float TILE_SIZE = 1.0f; // Adjust based on your game's scaling
+
     public GameRenderer(PerspectiveCamera camera, int boardSize, TakGame takGame) {
         this.camera = camera;
         this.boardSize = boardSize;
@@ -62,22 +65,27 @@ public class GameRenderer {
         Material boardMaterial = new Material(TextureAttribute.createDiffuse(boardTexture));
 
         // Create the game board model with texture
-        boardModel = modelBuilder.createBox(boardSize, 0.2f, boardSize,
+        boardModel = modelBuilder.createBox(boardSize * TILE_SIZE, 0.2f, boardSize * TILE_SIZE,
             boardMaterial,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
         boardInstance = new ModelInstance(boardModel);
-        boardInstance.transform.setToTranslation(boardSize / 2f, -0.1f, boardSize / 2f);
+        // Position the board at the center, slightly below y=0 to serve as the base
+        boardInstance.transform.setToTranslation((boardSize * TILE_SIZE) / 2f, -0.1f, (boardSize * TILE_SIZE) / 2f);
 
-        // Create models for the pieces
-        flatStoneModel = modelBuilder.createCylinder(0.8f, 0.2f, 0.8f, 32,
+        // **Adjusted Model Sizes for Pieces**
+
+        // Flat Stone: Cylinder with increased radius and same height
+        flatStoneModel = modelBuilder.createCylinder(0.6f, 0.1f, 0.6f, 32, // Increased radius from 0.4f to 0.6f
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
-        standingStoneModel = modelBuilder.createBox(0.8f, 1f, 0.8f,
+        // Standing Stone: Box with reduced width and depth, same height
+        standingStoneModel = modelBuilder.createBox(0.5f, 0.3f, 0.5f, // Reduced dimensions for better fit
             new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
-        capstoneModel = modelBuilder.createCone(0.8f, 1f, 0.8f, 32,
+        // Capstone: Cone with increased base diameter and increased height
+        capstoneModel = modelBuilder.createCone(0.6f, 0.4f, 0.6f, 32, // Increased base diameter from 0.5f to 0.6f and height from 0.3f to 0.4f
             new Material(ColorAttribute.createDiffuse(Color.RED)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
@@ -98,6 +106,7 @@ public class GameRenderer {
 
     /**
      * Updates the rendering instances of all pieces on the board.
+     * Ensures that pieces are appropriately sized and positioned.
      */
     public void updatePieceInstances() {
         pieceInstances.clear();
@@ -111,21 +120,32 @@ public class GameRenderer {
                         Piece piece = stack.get(i);
                         Model model = getModelForPiece(piece);
                         ModelInstance pieceInstance = new ModelInstance(model);
-                        pieceInstance.transform.setToTranslation(x + 0.5f, heightOffset, y + 0.5f);
+
+                        // **Adjusted Positioning to Prevent Overlapping and Embedding**
+                        // Calculate position based on tile size and height offset
+                        float posX = x * TILE_SIZE + TILE_SIZE / 2f;
+                        float posZ = y * TILE_SIZE + TILE_SIZE / 2f;
+
+                        // Determine the height at which to place the piece
+                        // Start just above the board's top surface
+                        float boardTopY = 0.1f; // Board height is 0.2f, centered at -0.1f, so top is at y=0.1f
+                        float pieceHeight = getHeightForPiece(piece);
+                        float pieceBaseY = boardTopY + heightOffset + pieceHeight / 2f;
+
+                        pieceInstance.transform.setToTranslation(posX, pieceBaseY, posZ);
 
                         // Apply color based on the owner
                         Color pieceColor = piece.getOwner().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
                         ((ColorAttribute) pieceInstance.materials.get(0).get(ColorAttribute.Diffuse)).color.set(pieceColor);
 
                         pieceInstances.add(pieceInstance);
-                        heightOffset += getHeightForPiece(piece);
+
+                        // **Adjust Height Offset Based on Piece Type**
+                        heightOffset += pieceHeight;
                     }
                 }
             }
         }
-
-        // Re-add the board to ensure it's rendered beneath all pieces
-        pieceInstances.add(boardInstance);
 
         // Re-add hover outline if it exists
         if (hoverOutlineInstance != null) {
@@ -158,21 +178,21 @@ public class GameRenderer {
     }
 
     /**
-     * Returns the height offset for a given piece type.
+     * Returns the height for a given piece type.
      *
      * @param piece The piece whose height is needed.
-     * @return The height offset.
+     * @return The height of the piece.
      */
     private float getHeightForPiece(Piece piece) {
         switch (piece.getPieceType()) {
             case FLAT_STONE:
-                return 0.2f;
+                return 0.1f; // Height matches the model's height
             case STANDING_STONE:
-                return 0.5f;
+                return 0.3f; // Height matches the model's height
             case CAPSTONE:
-                return 0.8f;
+                return 0.4f; // Height matches the model's height
             default:
-                return 0.2f;
+                return 0.1f;
         }
     }
 
@@ -185,13 +205,19 @@ public class GameRenderer {
     public void createHoverOutline(int x, int y) {
         removeHoverOutline();
         ModelBuilder modelBuilder = new ModelBuilder();
-        Material outlineMaterial = new Material(ColorAttribute.createDiffuse(new Color(0, 0, 1, 0.1f)));
+        Material outlineMaterial = new Material(ColorAttribute.createDiffuse(new Color(0, 0, 1, 0.3f)));
         outlineMaterial.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
-        Model outlineModel = modelBuilder.createBox(1.0f, 0.05f, 1.0f,
+        Model outlineModel = modelBuilder.createBox(TILE_SIZE, 0.05f, TILE_SIZE,
             outlineMaterial,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         hoverOutlineInstance = new ModelInstance(outlineModel);
-        hoverOutlineInstance.transform.setToTranslation(x + 0.5f, 0.1f, y + 0.5f);
+
+        // Position the hover outline slightly above the board to prevent z-fighting
+        float posX = x * TILE_SIZE + TILE_SIZE / 2f;
+        float posZ = y * TILE_SIZE + TILE_SIZE / 2f;
+        float posY = 0.15f; // Slightly above the board's top
+
+        hoverOutlineInstance.transform.setToTranslation(posX, posY, posZ);
         pieceInstances.add(hoverOutlineInstance);
     }
 
@@ -217,13 +243,19 @@ public class GameRenderer {
     public void highlightSquare(int x, int y) {
         removeHighlight();
         ModelBuilder modelBuilder = new ModelBuilder();
-        Material highlightMaterial = new Material(ColorAttribute.createDiffuse(new Color(1, 1, 0, 0.5f)));
+        Material highlightMaterial = new Material(ColorAttribute.createDiffuse(new Color(1, 1, 0, 0.3f)));
         highlightMaterial.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
-        Model highlightModel = modelBuilder.createBox(1.0f, 0.05f, 1.0f,
+        Model highlightModel = modelBuilder.createBox(TILE_SIZE, 0.05f, TILE_SIZE,
             highlightMaterial,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         selectionHighlightInstance = new ModelInstance(highlightModel);
-        selectionHighlightInstance.transform.setToTranslation(x + 0.5f, 0.1f, y + 0.5f);
+
+        // Position the highlight slightly above the board to prevent z-fighting
+        float posX = x * TILE_SIZE + TILE_SIZE / 2f;
+        float posZ = y * TILE_SIZE + TILE_SIZE / 2f;
+        float posY = 0.15f; // Slightly above the board's top
+
+        selectionHighlightInstance.transform.setToTranslation(posX, posY, posZ);
         pieceInstances.add(selectionHighlightInstance);
     }
 

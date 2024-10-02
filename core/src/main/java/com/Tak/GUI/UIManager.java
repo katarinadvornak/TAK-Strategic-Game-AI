@@ -1,18 +1,17 @@
 package com.Tak.GUI;
 
 import com.Tak.Logic.*;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.*;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import java.util.ArrayList;
 
@@ -49,8 +48,7 @@ public class UIManager {
     public UIManager(TakGame takGame, GameScreen gameScreen) {
         this.takGame = takGame;
         this.gameScreen = gameScreen;
-        stage = new Stage(new ScreenViewport());
-        Gdx.input.setInputProcessor(stage); // Ensure the stage receives input events
+        stage = new Stage();
         createSkin();
         createUIElements();
     }
@@ -206,54 +204,28 @@ public class UIManager {
         standingStoneImage = new Image(new TextureRegionDrawable(createStandingStonePlaceholder()));
         capstoneImage = new Image(new TextureRegionDrawable(createCapstonePlaceholder()));
 
-        // **Adjusting the sizes of Standing Stone and Capstone**
-        // Here, we set different sizes to make them visually distinct
-        normalStoneImage.setSize(50, 50);    // Flat Stone size
-        standingStoneImage.setSize(60, 60);  // Standing Stone size (larger)
-        capstoneImage.setSize(55, 55);        // Capstone size (medium)
-
         // Add labels to hotbar images
         Label normalStoneLabel = new Label("Flat Stone", skin);
         Label standingStoneLabel = new Label("Standing Stone", skin);
         Label capstoneLabel = new Label("Capstone", skin);
 
-        // **Initialize new piece count labels without "Left:" prefix**
-        normalStoneCountLabel = new Label("0", skin);
-        standingStoneCountLabel = new Label("0", skin);
-        capstoneCountLabel = new Label("0", skin);
+        // **Initialize new piece count labels**
+        normalStoneCountLabel = new Label("Left: 0", skin);
+        standingStoneCountLabel = new Label("Left: 0", skin);
+        capstoneCountLabel = new Label("Left: 0", skin);
 
-        // **Create separate tables for each piece type to align counts beside images**
-        Table flatStoneTable = new Table();
-        flatStoneTable.add(normalStoneImage).size(50, 50).padRight(10); // Image with right padding
-        flatStoneTable.add(normalStoneCountLabel).align(Align.left).row(); // Count label beside image
+        // Add images and labels to hotbar with counts
+        hotbarPanel.add(normalStoneImage).size(50, 50).row();
+        hotbarPanel.add(normalStoneLabel).row();
+        hotbarPanel.add(normalStoneCountLabel).row(); // Add count label
+        hotbarPanel.add(standingStoneImage).size(50, 50).row();
+        hotbarPanel.add(standingStoneLabel).row();
+        hotbarPanel.add(standingStoneCountLabel).row(); // Add count label
+        hotbarPanel.add(capstoneImage).size(50, 50).row();
+        hotbarPanel.add(capstoneLabel).row();
+        hotbarPanel.add(capstoneCountLabel).row(); // Add count label
 
-        Table standingStoneTable = new Table();
-        standingStoneTable.add(standingStoneImage).size(60, 60).padRight(10);
-        standingStoneTable.add(standingStoneCountLabel).align(Align.left).row();
-
-        Table capstoneTable = new Table();
-        capstoneTable.add(capstoneImage).size(55, 55).padRight(10);
-        capstoneTable.add(capstoneCountLabel).align(Align.left).row();
-
-        // **Add piece tables to hotbarPanel**
-        hotbarPanel.add(flatStoneTable).expandX().fillX().row();
-        hotbarPanel.add(new Label("Flat Stone", skin)).align(Align.left).row(); // Optional: You can remove this if labels are not needed
-        hotbarPanel.add(standingStoneTable).expandX().fillX().row();
-        hotbarPanel.add(new Label("Standing Stone", skin)).align(Align.left).row();
-        hotbarPanel.add(capstoneTable).expandX().fillX().row();
-        hotbarPanel.add(new Label("Capstone", skin)).align(Align.left).row();
-
-        // **Alternative: If you prefer labels above or beside, adjust accordingly**
-        /*
-        hotbarPanel.add(flatStoneTable).align(Align.left).row();
-        hotbarPanel.add(new Label("Flat Stone", skin)).align(Align.left).row();
-        hotbarPanel.add(standingStoneTable).align(Align.left).row();
-        hotbarPanel.add(new Label("Standing Stone", skin)).align(Align.left).row();
-        hotbarPanel.add(capstoneTable).align(Align.left).row();
-        hotbarPanel.add(new Label("Capstone", skin)).align(Align.left).row();
-        */
-
-        // **Add hotbar to left panel**
+        // Add hotbar to left panel
         leftPanel.add(new Label("Hotbar:", skin)).padTop(20).row();
         leftPanel.add(hotbarPanel).padBottom(10).row();
 
@@ -338,7 +310,6 @@ public class UIManager {
      * Updates the hotbar colors and piece count labels based on the current game state.
      */
     public void updateHotbarColors() {
-        // Determine the current player's color
         Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
 
         Player targetPlayer;
@@ -373,10 +344,10 @@ public class UIManager {
             capstoneImage.invalidate();
         }
 
-        // **Update the piece count labels with only the number**
-        normalStoneCountLabel.setText(String.valueOf(targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE)));
-        standingStoneCountLabel.setText(String.valueOf(targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE)));
-        capstoneCountLabel.setText(String.valueOf(targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE)));
+        // **Update the piece count labels**
+        normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
+        standingStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
+        capstoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
     }
 
     /**
