@@ -8,8 +8,11 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.Color;
 
 /**
  * The GameScreen class handles the main game screen, coordinating between the renderer, UI, and input handler.
@@ -28,7 +31,7 @@ public class GameScreen implements Screen {
     public Piece.PieceType selectedPieceType;
 
     private TextButton rulesButton;
-
+    private ShapeRenderer shapeRenderer;
     public int moveCount = 0;
 
     public GameScreen(TakGameMain game) {
@@ -72,16 +75,19 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
     
         addRulesButton();        
+
         // After setting up UI elements
         uiManager.updateHotbarColors();
-    }    
-    
 
-     private void addRulesButton() {
+        // Initialize ShapeRenderer for the selection arrow
+        shapeRenderer = new ShapeRenderer();
+    }    
+
+    private void addRulesButton() {
         rulesButton = new TextButton("Rules", uiManager.getSkin());
 
         Table table = new Table();
-        table.top().left(); 
+        table.top().left();
         table.setFillParent(true);
 
         table.add(rulesButton).pad(10);
@@ -91,7 +97,7 @@ public class GameScreen implements Screen {
         rulesButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                showRulesDialog(); 
+                showRulesDialog();
             }
         });
     }
@@ -128,9 +134,42 @@ public class GameScreen implements Screen {
         // Render the game
         renderer.render();
 
+        // Render the selection arrow if a piece is selected
+        if (selectedPieceType != null) {
+            renderSelectionArrow();
+        }
+
         // Update and draw the UI
         uiManager.getStage().act(delta);
         uiManager.getStage().draw();
+    }
+
+    private void renderSelectionArrow() {
+        shapeRenderer.setProjectionMatrix(uiManager.getStage().getCamera().combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(Color.WHITE);
+
+        float x = 0, y = 0;
+        switch (selectedPieceType) {
+            case FLAT_STONE:
+                x = 50;
+                y = 330;
+                break;
+            case STANDING_STONE:
+                x = 50;
+                y = 210;
+                break;
+            case CAPSTONE:
+                x = 50;
+                y = 85;
+                break;
+        }
+
+        // Draw a simple arrow pointing from left to right
+        shapeRenderer.triangle(x, y - 10, x, y + 10, x + 30, y);
+        shapeRenderer.triangle(x + 30, y - 10, x + 30, y + 10, x + 60, y);
+
+        shapeRenderer.end();
     }
 
     @Override
@@ -148,6 +187,7 @@ public class GameScreen implements Screen {
     public void dispose() {
         renderer.dispose();
         uiManager.dispose();
+        shapeRenderer.dispose();
     }
 
     @Override
