@@ -36,7 +36,12 @@ Developed by Ken.
   - [Technology Stack](#technology-stack)
   - [Key Features](#key-features)
   - [Architecture Overview](#architecture-overview)
+    - [Core Logic](#core-logic)
+    - [Rendering and Input](#rendering-and-input)
+- [Controls](#controls-1)
+  - [Camera](#camera)
 - [Credits](#credits)
+- [Introduction](#introduction-1)
 
 ## Introduction
 
@@ -73,12 +78,12 @@ This project is built using **LibGDX**, a cross-platform Java game development f
 
 On your turn, you may either place a piece or move a stack.
 
-##### Placing a Piece
+#### Placing a Piece
 
 - Place a flat stone, standing stone, or capstone on an empty square.
 - Pieces are placed on your own side starting from the third move.
 
-##### Moving a Stack
+#### Moving a Stack
 
 - You may move pieces from a stack you control (your piece is on top).
 - Move pieces in a straight line (up, down, left, or right).
