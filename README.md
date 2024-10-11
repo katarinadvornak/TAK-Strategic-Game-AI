@@ -2,7 +2,8 @@
 
 Welcome to **Tak**, a digital rendition of the classic strategy board game. This implementation brings the timeless tactics and strategy of Tak to your computer, allowing you to play against another human player locally.
 
-Developed by Ken.
+
+# Developed by Ken.
 
 ## Table of Contents
 
@@ -148,3 +149,8 @@ On your turn, you may either place a piece or move a stack.
 ```bash
 git clone https://github.com/yourusername/TakGame.git
 cd TakGame
+
+# Run the game by entering in the terminal:
+
+./gradlew build
+./gradlew lwjgl3:run
