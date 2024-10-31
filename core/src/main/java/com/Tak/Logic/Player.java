@@ -6,8 +6,9 @@ import java.util.Map;
 /**
  * The Player class represents a player in the game.
  * It tracks the player's color, the number of remaining pieces, and the player's score.
+ * It is an abstract class to be extended by HumanPlayer and AIPlayer.
  */
-public class Player {
+public abstract class Player {
 
     /**
      * Enum to represent player colors.
@@ -17,9 +18,9 @@ public class Player {
         WHITE
     }
 
-    private Color color; // The player's color.
-    private Map<Piece.PieceType, Integer> remainingPieces; // Remaining pieces of each type.
-    private int score; // The player's score.
+    protected Color color; // The player's color.
+    protected Map<Piece.PieceType, Integer> remainingPieces; // Remaining pieces of each type.
+    protected int score; // The player's score.
 
     /**
      * Constructor to initialize the player with a color and piece counts.
@@ -37,6 +38,16 @@ public class Player {
         remainingPieces.put(Piece.PieceType.CAPSTONE, capstones);
         this.score = 0; // Initialize score to 0
     }
+
+    /**
+     * Abstract method for making a move.
+     * Must be implemented by subclasses (HumanPlayer, AIPlayer).
+     *
+     * @param game The current TakGame instance.
+     * @throws InvalidMoveException If an invalid move is attempted.
+     * @throws GameOverException    If the game has already ended.
+     */
+    public abstract void makeMove(TakGame game) throws InvalidMoveException, GameOverException;
 
     /**
      * Gets the player's color.

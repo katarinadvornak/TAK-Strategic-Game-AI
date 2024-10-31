@@ -1,0 +1,24 @@
+package com.Tak.AI;
+
+import com.Tak.Logic.*;
+import java.util.List;
+
+/**
+ * The MoveOrderingHeuristics class implements heuristics to order moves
+ * in a way that improves Alpha-Beta pruning efficiency.
+ */
+public class MoveOrderingHeuristics {
+
+    /**
+     * Orders the list of moves based on heuristic evaluations to improve pruning efficiency.
+     *
+     * @param moves   The list of moves to order.
+     * @param board   The current game board.
+     * @param player  The player for whom the moves are generated.
+     * @return The ordered list of moves.
+     */
+    public static List<Move> orderMoves(List<Move> moves, Board board, Player player) {
+        // Placeholder for move ordering logic
+        return moves; // Should return the ordered list of moves
+    }
+}

@@ -21,7 +21,7 @@ public class Board {
     @SuppressWarnings("unchecked")
     public Board(int size) {
         this.size = size;
-        this.CARRY_LIMIT = size;
+        this.CARRY_LIMIT = size; // According to Tak rules, the carry limit is equal to the board size
         this.board = new ArrayList[size][size];
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
@@ -54,6 +54,13 @@ public class Board {
         }
     }
 
+    /**
+     * Checks if the specified position is a valid position on the board.
+     *
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     * @return True if the position is valid, false otherwise.
+     */
     public boolean isValidPosition(int x, int y) {
         return x >= 0 && x < size && y >= 0 && y < size;
     }
@@ -205,7 +212,7 @@ public class Board {
      * @param fromX          The starting X coordinate.
      * @param fromY          The starting Y coordinate.
      * @param toX            The target X coordinate.
-     * @param toY            The ending Y coordinate.
+     * @param toY            The target Y coordinate.
      * @param numberOfPieces The number of pieces being moved.
      * @param currentPlayer  The player making the move.
      * @return true if the move is valid, false otherwise.
@@ -296,6 +303,41 @@ public class Board {
                 getBoardPosition(x, y).clear();
             }
         }
+    }
+
+    /**
+     * Creates a deep copy of the board, including all pieces and their states.
+     *
+     * @return A new Board object that is a copy of the current board.
+     */
+    @SuppressWarnings("unchecked")
+    public Board copy() {
+        Board newBoard = new Board(this.size);
+        for (int x = 0; x < this.size; x++) {
+            for (int y = 0; y < this.size; y++) {
+                List<Piece> originalStack = this.board[x][y];
+                List<Piece> newStack = new ArrayList<>();
+                for (Piece piece : originalStack) {
+                    // Assuming Piece has a proper copy constructor or clone method
+                    Piece newPiece = new Piece(piece.getPieceType(), piece.getOwner());
+                    newStack.add(newPiece);
+                }
+                newBoard.board[x][y] = newStack;
+            }
+        }
+        return newBoard;
+    }
+
+    /**
+     * Checks if the game has ended based on the current board state.
+     * (This method can be customized to check specific end-game conditions.)
+     *
+     * @return True if the game has ended, false otherwise.
+     */
+    public boolean isGameOver() {
+        // Placeholder for game over logic
+        // Implement logic to determine if the game has ended
+        return false;
     }
 
     /**

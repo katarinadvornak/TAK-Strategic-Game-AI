@@ -41,7 +41,7 @@ public class GameScreen implements Screen {
 
     public void create() {
         // Initialize the game logic
-        takGame = new TakGame(boardSize);
+        takGame = new TakGame(boardSize,true);
     
         // **Remove or comment out the fullscreen mode setting**
         Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());

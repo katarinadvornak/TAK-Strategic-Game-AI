@@ -3,6 +3,7 @@ package com.Tak.Logic;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import com.Tak.AI.AIPlayer;
 
 /**
  * The TakGame class manages the overall game flow.
@@ -16,24 +17,29 @@ public class TakGame {
     private Player currentPlayer;     // The player whose turn it is
     private WinChecker winChecker;    // Utility to check win conditions
     private boolean gameEnded;        // Flag to indicate if the game has ended
-    private Player winner;
+    private Player winner;            // The winning player, if any
     private int moveCount;            // To track the number of moves made
 
     /**
      * Constructor to initialize the game with the board and players.
      *
      * @param boardSize The size of the board.
+     * @param useAI     Whether to use an AI player.
      */
-    public TakGame(int boardSize) {
+    public TakGame(int boardSize, boolean useAI) {
         this.board = new Board(boardSize);
         int flatStones = calculateFlatStones(boardSize);
         int capstones = calculateCapstones(boardSize);
         int standingStones = calculateStandingStones(boardSize);
 
-        this.player1 = new Player(Player.Color.BLACK, flatStones, standingStones, capstones);
-        this.player2 = new Player(Player.Color.WHITE, flatStones, standingStones, capstones);
-
-        // Initialize currentPlayer to Player 2 (White)
+        if (useAI) {
+            this.player1 = new HumanPlayer(Player.Color.BLACK, flatStones, standingStones, capstones);
+            this.player2 = new AIPlayer(Player.Color.WHITE, flatStones, standingStones, capstones, 3); // Example searchDepth = 3
+        } else {
+            this.player1 = new HumanPlayer(Player.Color.BLACK, flatStones, standingStones, capstones);
+            this.player2 = new HumanPlayer(Player.Color.WHITE, flatStones, standingStones, capstones);
+        }
+        // Initialize currentPlayer to Player 1 (Black)
         this.currentPlayer = player1;
 
         this.winChecker = new WinChecker();
@@ -110,6 +116,13 @@ public class TakGame {
     }
 
     /**
+     * Increments the move count.
+     */
+    public void incrementMoveCount() {
+        this.moveCount++;
+    }
+
+    /**
      * Gets the winner of the game.
      *
      * @return The winning player, or null if no winner yet.
@@ -131,8 +144,8 @@ public class TakGame {
      * @param x         The X coordinate.
      * @param y         The Y coordinate.
      * @param pieceType The type of piece to place.
-     * @throws GameOverException     If the game has ended.
-     * @throws InvalidMoveException  If the move is invalid.
+     * @throws GameOverException    If the game has ended.
+     * @throws InvalidMoveException If the move is invalid.
      */
     public void placePiece(int x, int y, Piece.PieceType pieceType) throws GameOverException, InvalidMoveException {
         if (gameEnded) {
@@ -154,7 +167,7 @@ public class TakGame {
             Piece piece = new Piece(pieceType, pieceOwner);
             board.placePiece(x, y, piece, currentPlayer);
             pieceOwner.decrementPiece(pieceType); // Decrement from the actual owner
-            moveCount++;
+            incrementMoveCount();
             checkWinConditions();
             if (!gameEnded) {
                 switchPlayer();
@@ -163,7 +176,6 @@ public class TakGame {
             throw new InvalidMoveException("No remaining pieces of this type.");
         }
     }
-
 
     /**
      * Gets the opponent player.
@@ -177,7 +189,7 @@ public class TakGame {
     /**
      * Checks for win conditions after a move and updates scores accordingly.
      */
-    private void checkWinConditions() {
+    public void checkWinConditions() {
         if (winChecker.checkForRoadWin(currentPlayer, board)) {
             System.out.println(currentPlayer.getColor() + " wins by road!");
             winner = currentPlayer;
@@ -249,6 +261,8 @@ public class TakGame {
     /**
      * Resets the game to its initial state.
      * Optionally resets player scores if desired.
+     *
+     * @param resetScores Whether to reset player scores.
      */
     public void resetGame(boolean resetScores) {
         board.resetBoard();
@@ -266,6 +280,17 @@ public class TakGame {
         }
     }
 
+    /**
+     * Moves a stack of pieces starting from a position in a specified direction,
+     * dropping a specified number of pieces along the way.
+     *
+     * @param startX     The starting X coordinate.
+     * @param startY     The starting Y coordinate.
+     * @param direction  The direction to move.
+     * @param dropCounts An array specifying how many pieces to drop at each step.
+     * @throws InvalidMoveException If the move is invalid.
+     * @throws GameOverException    If the game has ended.
+     */
     public void moveStack(int startX, int startY, Direction direction, int[] dropCounts) throws InvalidMoveException, GameOverException {
         System.out.println("moveStack called with startX: " + startX + ", startY: " + startY + ", direction: " + direction + ", dropCounts: " + Arrays.toString(dropCounts));
 
@@ -299,10 +324,10 @@ public class TakGame {
         // Calculate movement increments
         int dx = 0, dy = 0;
         switch (direction) {
-            case UP: dy = 1; break;
-            case DOWN: dy = -1; break;
-            case LEFT: dx = -1; break;
-            case RIGHT: dx = 1; break;
+            case UP:    dy = 1;  break;
+            case DOWN:  dy = -1; break;
+            case LEFT:  dx = -1; break;
+            case RIGHT: dx = 1;  break;
             default:
                 throw new InvalidMoveException("Invalid direction.");
         }
@@ -368,16 +393,11 @@ public class TakGame {
             throw new InvalidMoveException("All pieces must be dropped during the move.");
         }
 
-        moveCount++;
+        incrementMoveCount();
         checkWinConditions();
         if (!gameEnded) {
             switchPlayer();
         }
         System.out.println("Move completed successfully.");
-
     }
-
-
-
-
 }

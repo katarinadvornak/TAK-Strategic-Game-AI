@@ -1,19 +1,26 @@
 package com.Tak.Logic;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * The Move class represents a move made by a player.
- * It includes information about the move's starting and ending positions,
- * the direction, number of pieces being moved, and drop counts.
+ * It includes information about the move's starting position,
+ * direction, number of pieces being moved, and drop counts.
+ * The class provides methods to execute and undo the move on a game board.
  */
-public class Move {
+public class Move extends Action {
 
     private int startX;                 // Starting X coordinate.
     private int startY;                 // Starting Y coordinate.
     private Direction direction;        // Direction of movement.
     private int numberOfPieces;         // Number of pieces being moved.
     private List<Integer> dropCounts;   // Number of pieces to drop at each space.
+
+    // State to store for undo functionality
+    private List<Piece> movedPieces;    // Pieces that were moved during the execution
+    private List<Integer> positionsX;   // X positions of the move path
+    private List<Integer> positionsY;   // Y positions of the move path
 
     /**
      * Constructor to initialize a move.
@@ -30,6 +37,150 @@ public class Move {
         this.direction = direction;
         this.numberOfPieces = numberOfPieces;
         this.dropCounts = dropCounts;
+
+        // Initialize lists for undo functionality
+        this.movedPieces = new ArrayList<>();
+        this.positionsX = new ArrayList<>();
+        this.positionsY = new ArrayList<>();
+    }
+
+    /**
+     * Executes the move on the given game board.
+     *
+     * @param board The game board on which to execute the move.
+     * @throws InvalidMoveException If the move is invalid according to game rules.
+     */
+    @Override
+    public void execute(Board board) throws InvalidMoveException {
+        int x = startX;
+        int y = startY;
+
+        List<Piece> fromStack = board.getBoardPosition(x, y);
+        if (fromStack.size() < numberOfPieces) {
+            throw new InvalidMoveException("Not enough pieces to move from the starting position.");
+        }
+
+        // Extract the pieces to move
+        List<Piece> piecesToMove = new ArrayList<>(fromStack.subList(fromStack.size() - numberOfPieces, fromStack.size()));
+        fromStack.subList(fromStack.size() - numberOfPieces, fromStack.size()).clear();
+
+        // Store moved pieces for undo functionality
+        movedPieces.addAll(piecesToMove);
+        positionsX.add(x);
+        positionsY.add(y);
+
+        // Direction increments
+        int dx = 0, dy = 0;
+        switch (direction) {
+            case UP:    dy = 1;  break;
+            case DOWN:  dy = -1; break;
+            case LEFT:  dx = -1; break;
+            case RIGHT: dx = 1;  break;
+            default:
+                throw new InvalidMoveException("Invalid direction.");
+        }
+
+        // Perform the move, dropping pieces along the path
+        for (int dropCount : dropCounts) {
+            x += dx;
+            y += dy;
+
+            if (!board.isWithinBounds(x, y)) {
+                throw new InvalidMoveException("Move goes out of bounds.");
+            }
+
+            List<Piece> destinationStack = board.getBoardPosition(x, y);
+
+            // Check stacking rules
+            if (!destinationStack.isEmpty()) {
+                Piece topPiece = destinationStack.get(destinationStack.size() - 1);
+                Piece movingPiece = piecesToMove.get(0);
+
+                if (!canStackOnTop(movingPiece, topPiece)) {
+                    throw new InvalidMoveException("Cannot stack on top of the destination stack.");
+                }
+
+                // Handle capstone flattening standing stones
+                if (movingPiece.isCapstone() && topPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
+                    topPiece.setPieceType(Piece.PieceType.FLAT_STONE);
+                }
+            }
+
+            // Drop the pieces onto the destination stack
+            List<Piece> piecesToDrop = new ArrayList<>(piecesToMove.subList(0, dropCount));
+            piecesToMove.subList(0, dropCount).clear();
+            destinationStack.addAll(piecesToDrop);
+
+            // Store positions for undo functionality
+            positionsX.add(x);
+            positionsY.add(y);
+
+            if (piecesToMove.isEmpty()) {
+                break;
+            }
+        }
+
+        if (!piecesToMove.isEmpty()) {
+            throw new InvalidMoveException("Not all pieces were dropped during the move.");
+        }
+    }
+
+    /**
+     * Undoes the move on the given game board.
+     *
+     * @param board The game board on which to undo the move.
+     */
+    @Override
+    public void undo(Board board) {
+        // Remove the pieces from their current positions
+        int numPositions = positionsX.size();
+        int index = movedPieces.size();
+
+        for (int i = numPositions - 1; i > 0; i--) {
+            int x = positionsX.get(i);
+            int y = positionsY.get(i);
+            int dropCount = dropCounts.get(i - 1);
+
+            List<Piece> destinationStack = board.getBoardPosition(x, y);
+            int size = destinationStack.size();
+
+            // Remove the pieces that were added during execution
+            List<Piece> piecesToRemove = destinationStack.subList(size - dropCount, size);
+            destinationStack.removeAll(piecesToRemove);
+
+            // Restore any changes made to pieces (e.g., standing stone restored)
+            // Assuming we have a way to restore the original state if necessary
+
+            index -= dropCount;
+        }
+
+        // Restore the pieces to the original stack
+        int startX = positionsX.get(0);
+        int startY = positionsY.get(0);
+        List<Piece> fromStack = board.getBoardPosition(startX, startY);
+        fromStack.addAll(movedPieces);
+
+        // Clear stored data
+        movedPieces.clear();
+        positionsX.clear();
+        positionsY.clear();
+    }
+
+    /**
+     * Checks if the moving piece can be legally stacked on top of the target piece.
+     *
+     * @param movingPiece The piece attempting to stack.
+     * @param targetPiece The top piece at the target location.
+     * @return true if the moving piece can be stacked, false otherwise.
+     */
+    private boolean canStackOnTop(Piece movingPiece, Piece targetPiece) {
+        if (targetPiece.getPieceType() == Piece.PieceType.CAPSTONE) {
+            return false;
+        }
+        if (targetPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
+            return movingPiece.isCapstone();
+        }
+        return true;
     }
 
     /**
