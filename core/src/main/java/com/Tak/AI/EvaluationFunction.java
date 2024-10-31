@@ -1,6 +1,7 @@
 package com.Tak.AI;
 
-import com.Tak.Logic.*;
+import com.Tak.Logic.Board;
+import com.Tak.Logic.Player;
 
 /**
  * The EvaluationFunction class provides methods to evaluate the desirability
@@ -17,11 +18,9 @@ public class EvaluationFunction {
      * @return A double score indicating the favorability of the board state.
      */
     public double evaluate(Board board, Player aiPlayer) {
-        // Placeholder: Implement evaluation logic based on heuristics
+        // Placeholder method body
         return 0.0;
     }
-
-    // Additional methods that might be important:
 
     /**
      * Counts the number of flat stones owned by the player that are on top of stacks.
@@ -30,8 +29,8 @@ public class EvaluationFunction {
      * @param player  The player whose flat stones to count.
      * @return The count of flat stones on top.
      */
-    private int countFlatStonesOnTop(Board board, Player player) {
-        // Placeholder: Implement counting of flat stones on top
+    private int evaluateFlatStonesOnTop(Board board, Player player) {
+        // Placeholder method body
         return 0;
     }
 
@@ -43,7 +42,7 @@ public class EvaluationFunction {
      * @return A score indicating control of the center.
      */
     private double evaluateCenterControl(Board board, Player player) {
-        // Placeholder: Implement center control evaluation
+        // Placeholder method body
         return 0.0;
     }
 
@@ -55,19 +54,30 @@ public class EvaluationFunction {
      * @return A score indicating piece mobility.
      */
     private double evaluatePieceMobility(Board board, Player player) {
-        // Placeholder: Implement piece mobility evaluation
+        // Placeholder method body
         return 0.0;
     }
 
     /**
      * Calculates the difference in remaining pieces between the AI and the opponent.
      *
-     * @param aiPlayer     The AI player.
-     * @param opponent     The opponent player.
+     * @param aiPlayer The AI player.
+     * @param opponent The opponent player.
      * @return A score based on the difference in remaining pieces.
      */
     private double evaluateRemainingPieces(Player aiPlayer, Player opponent) {
-        // Placeholder: Implement remaining pieces evaluation
+        // Placeholder method body
         return 0.0;
+    }
+
+    /**
+     * Gets the opponent player.
+     *
+     * @param player The current player.
+     * @return The opponent player.
+     */
+    private Player getOpponent(Player player) {
+        // Placeholder method body
+        return null;
     }
 }

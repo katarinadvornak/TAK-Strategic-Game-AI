@@ -1,8 +1,13 @@
 package com.Tak.AI;
 
-import com.Tak.Logic.*;
+import com.Tak.Logic.Board;
+import com.Tak.Logic.Move;
+import com.Tak.Logic.Player;
+import com.Tak.Logic.InvalidMoveException;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 
 /**
  * The ReinforcementLearningAgent class implements reinforcement learning techniques
@@ -11,9 +16,10 @@ import java.util.HashMap;
 public class ReinforcementLearningAgent {
 
     private Map<StateActionPair, Double> qTable;
-    private double learningRate;
-    private double discountFactor;
-    private double explorationRate;
+    private double learningRate;       // Alpha
+    private double discountFactor;     // Gamma
+    private double explorationRate;    // Epsilon
+    private Random random;
 
     /**
      * Constructs a ReinforcementLearningAgent with specified learning parameters.
@@ -27,7 +33,27 @@ public class ReinforcementLearningAgent {
         this.learningRate = learningRate;
         this.discountFactor = discountFactor;
         this.explorationRate = explorationRate;
+        this.random = new Random();
     }
+
+    /**
+     * Selects an action based on the current Q-values, using an epsilon-greedy strategy.
+     *
+     * @param state  The current game state.
+     * @param player The player making the move.
+     * @return The selected Move.
+     */
+    public Move selectAction(Board state, Player player) {
+        if (random.nextDouble() < explorationRate) {
+            // Exploration: choose a random valid move
+            return selectRandomAction(state, player);
+        } else {
+            // Exploitation: choose the best move based on Q-values
+            return selectBestAction(state, player);
+        }
+    }
+
+    // Additional methods with placeholder bodies...
 
     /**
      * Updates the Q-value for a given state-action pair based on the received reward and next state.
@@ -38,115 +64,62 @@ public class ReinforcementLearningAgent {
      * @param nextState    The next game state after the action.
      */
     public void updateQValue(Board currentState, Move action, double reward, Board nextState) {
-        // Placeholder: Implement Q-value update logic
+        // Placeholder method body
     }
 
     /**
-     * Selects an action based on the current Q-values, potentially using an exploration-exploitation strategy.
+     * Selects a random valid action from the current state.
      *
      * @param state  The current game state.
      * @param player The player making the move.
-     * @return The selected Move.
+     * @return A random valid Move.
      */
-    public Move selectAction(Board state, Player player) {
-        // Placeholder: Implement action selection logic
+    private Move selectRandomAction(Board state, Player player) {
+        // Placeholder method body
         return null;
     }
 
-    // Additional methods:
+    /**
+     * Selects the best action based on Q-values from the current state.
+     *
+     * @param state  The current game state.
+     * @param player The player making the move.
+     * @return The best Move based on Q-values.
+     */
+    private Move selectBestAction(Board state, Player player) {
+        // Placeholder method body
+        return null;
+    }
 
     /**
-     * Gets the Q-value for a specific state-action pair.
+     * Retrieves the maximum Q-value for all actions from the given state.
      *
-     * @param saPair The state-action pair.
-     * @return The Q-value.
+     * @param state The game state.
+     * @return The maximum Q-value.
      */
-    public double getQValue(StateActionPair saPair) {
-        // Placeholder: Retrieve Q-value from Q-table
+    private double getMaxQValue(Board state) {
+        // Placeholder method body
         return 0.0;
     }
 
     /**
-     * Sets the Q-value for a specific state-action pair.
+     * Generates all possible valid moves for the given state and player.
      *
-     * @param saPair The state-action pair.
-     * @param value  The Q-value to set.
+     * @param state  The current game state.
+     * @param player The player making the move.
+     * @return A list of possible Move objects.
      */
-    public void setQValue(StateActionPair saPair, double value) {
-        // Placeholder: Set Q-value in Q-table
+    private List<Move> generatePossibleMoves(Board state, Player player) {
+        // Placeholder method body
+        return null;
     }
 
     /**
-     * Saves the learned Q-values to a file for later use.
-     *
-     * @param filePath The file path to save the Q-values.
+     * Decays the exploration rate over time to favor exploitation.
      */
-    public void savePolicy(String filePath) {
-        // Placeholder: Implement policy saving logic
+    public void decayExplorationRate() {
+        // Placeholder method body
     }
 
-    /**
-     * Loads previously learned Q-values from a file.
-     *
-     * @param filePath The file path from which to load the Q-values.
-     */
-    public void loadPolicy(String filePath) {
-        // Placeholder: Implement policy loading logic
-    }
-
-    // Getters and setters for learning parameters:
-
-    /**
-     * Gets the learning rate (alpha).
-     *
-     * @return The learning rate.
-     */
-    public double getLearningRate() {
-        return learningRate;
-    }
-
-    /**
-     * Sets the learning rate (alpha).
-     *
-     * @param learningRate The new learning rate.
-     */
-    public void setLearningRate(double learningRate) {
-        this.learningRate = learningRate;
-    }
-
-    /**
-     * Gets the discount factor (gamma).
-     *
-     * @return The discount factor.
-     */
-    public double getDiscountFactor() {
-        return discountFactor;
-    }
-
-    /**
-     * Sets the discount factor (gamma).
-     *
-     * @param discountFactor The new discount factor.
-     */
-    public void setDiscountFactor(double discountFactor) {
-        this.discountFactor = discountFactor;
-    }
-
-    /**
-     * Gets the exploration rate (epsilon).
-     *
-     * @return The exploration rate.
-     */
-    public double getExplorationRate() {
-        return explorationRate;
-    }
-
-    /**
-     * Sets the exploration rate (epsilon).
-     *
-     * @param explorationRate The new exploration rate.
-     */
-    public void setExplorationRate(double explorationRate) {
-        this.explorationRate = explorationRate;
-    }
+    // Getters and setters...
 }

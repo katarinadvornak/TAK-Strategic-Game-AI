@@ -1,6 +1,9 @@
 package com.Tak.AI;
 
-import com.Tak.Logic.*;
+import com.Tak.Logic.Board;
+import com.Tak.Logic.Move;
+import com.Tak.Logic.Player;
+import com.Tak.Logic.InvalidMoveException;
 import java.util.List;
 
 /**
@@ -36,12 +39,15 @@ public class MinimaxAlgorithm {
      *
      * @param board     The current game board.
      * @param aiPlayer  The AI player making the move.
+     * @param depth     The maximum depth to search.
      * @return The best Move for the AI to execute, or null if no valid moves are available.
      */
-    public Move findBestMove(Board board, Player aiPlayer,int depth) {
-        // Placeholder: Implement Minimax search to find the best move
+    public Move findBestMove(Board board, Player aiPlayer, int depth) {
+        // Placeholder method body
         return null;
     }
+
+    // Additional methods with placeholder bodies...
 
     /**
      * Implements the Minimax algorithm with Alpha-Beta pruning.
@@ -55,8 +61,20 @@ public class MinimaxAlgorithm {
      * @return The evaluated score for the board state.
      */
     private double minimax(Board board, int depth, double alpha, double beta, boolean maximizingPlayer, Player aiPlayer) {
-        // Placeholder: Implement recursive Minimax with Alpha-Beta pruning
+        // Placeholder method body
         return 0.0;
+    }
+
+    /**
+     * Checks if the current state is a terminal state or if maximum depth is reached.
+     *
+     * @param board The current game board.
+     * @param depth The current depth.
+     * @return True if terminal state or depth limit reached, false otherwise.
+     */
+    private boolean isTerminalState(Board board, int depth) {
+        // Placeholder method body
+        return false;
     }
 
     /**
@@ -67,45 +85,31 @@ public class MinimaxAlgorithm {
      * @return A list of possible Move objects.
      */
     private List<Move> generatePossibleMoves(Board board, Player player) {
-        // Placeholder: Implement move generation logic
+        // Placeholder method body
         return null;
     }
 
-    // Additional methods:
-
     /**
-     * Sets the maximum depth for the Minimax search.
+     * Applies a move to the board.
      *
-     * @param maxDepth The maximum depth to search.
+     * @param board The board to apply the move on.
+     * @param move  The move to apply.
+     * @throws InvalidMoveException If the move is invalid.
      */
-    public void setMaxDepth(int maxDepth) {
-        this.maxDepth = maxDepth;
+    private void applyMove(Board board, Move move) throws InvalidMoveException {
+        // Placeholder method body
     }
 
     /**
-     * Gets the maximum depth for the Minimax search.
+     * Gets the opponent player.
      *
-     * @return The maximum depth.
+     * @param player The current player.
+     * @return The opponent player.
      */
-    public int getMaxDepth() {
-        return maxDepth;
+    private Player getOpponent(Player player) {
+        // Placeholder method body
+        return null;
     }
 
-    /**
-     * Sets the evaluation function used by the Minimax algorithm.
-     *
-     * @param evaluationFunction The new evaluation function.
-     */
-    public void setEvaluationFunction(EvaluationFunction evaluationFunction) {
-        this.evaluationFunction = evaluationFunction;
-    }
-
-    /**
-     * Gets the evaluation function used by the Minimax algorithm.
-     *
-     * @return The evaluation function.
-     */
-    public EvaluationFunction getEvaluationFunction() {
-        return evaluationFunction;
-    }
+    // Getters and setters...
 }
