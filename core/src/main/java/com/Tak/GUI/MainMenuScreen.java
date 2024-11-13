@@ -1,7 +1,11 @@
+// File: core/src/main/java/com/Tak/GUI/MainMenuScreen.java
 package com.Tak.GUI;
 
 import com.badlogic.gdx.*;
-import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -11,7 +15,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 /**
  * The MainMenuScreen class represents the main menu of the game.
- * It allows the player to start a new game or exit the application.
+ * It allows the player to start a new game, view game rules, or exit the application.
  */
 public class MainMenuScreen implements Screen {
     private TakGameMain game; // Reference to the main game class
@@ -22,6 +26,11 @@ public class MainMenuScreen implements Screen {
     private TextButton exitButton;
     private Label titleLabel;
 
+    /**
+     * Constructor to initialize the MainMenuScreen.
+     *
+     * @param game The main game instance.
+     */
     public MainMenuScreen(TakGameMain game) {
         this.game = game;
         create();
@@ -34,48 +43,102 @@ public class MainMenuScreen implements Screen {
         // Set up the stage and skin
         stage = new Stage(new ScreenViewport());
         skin = createBasicSkin();
-    
+
         // Create the title label
         titleLabel = new Label("TAK", skin, "title"); // Use the title style for the label
         titleLabel.setAlignment(Align.center); // Center the text (optional)
-    
+
         // Create buttons
         startGameButton = new TextButton("Start Game", skin);
         rulesButton = new TextButton("Game Rules", skin);
         exitButton = new TextButton("Exit", skin);
-    
+
         // Set up the table layout
         Table table = new Table();
         table.setFillParent(true);
         table.center();
-    
+
         // Add the title label to the table
         table.add(titleLabel).padBottom(30); // Add some padding below the title
         table.row(); // Move to the next row
-    
+
         // Add buttons to the table
         table.add(startGameButton).width(200).height(60).pad(10);
         table.row();
         table.add(rulesButton).width(200).height(60).pad(10);
         table.row();
         table.add(exitButton).width(200).height(60).pad(10);
-    
+
         // Add the table to the stage
         stage.addActor(table);
-    
+
         // Set input processor
         Gdx.input.setInputProcessor(stage);
-    
+
         // Add listeners to buttons
         addButtonListeners();
     }
 
-    
+    /**
+     * Creates a basic skin programmatically for UI elements.
+     * For scalability, consider using external skin files with texture atlases.
+     *
+     * @return The created skin.
+     */
+    private Skin createBasicSkin() {
+        Skin skin = new Skin();
 
-    
+        // Create a default font
+        BitmapFont font = new BitmapFont();
+        skin.add("default-font", font);
+
+        // Create a larger font for the title
+        BitmapFont titleFont = new BitmapFont();
+        titleFont.getData().setScale(3); // Scale the font size to make it larger
+        skin.add("title-font", titleFont); // Add the title font to the skin
+
+        // Create button textures
+        Pixmap pixmapUp = new Pixmap(200, 60, Pixmap.Format.RGBA8888);
+        pixmapUp.setColor(Color.GRAY);
+        pixmapUp.fill();
+        skin.add("button-up", new Texture(pixmapUp));
+
+        Pixmap pixmapDown = new Pixmap(200, 60, Pixmap.Format.RGBA8888);
+        pixmapDown.setColor(Color.DARK_GRAY);
+        pixmapDown.fill();
+        skin.add("button-down", new Texture(pixmapDown));
+
+        pixmapUp.dispose();
+        pixmapDown.dispose();
+
+        // Create a TextButton style
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.newDrawable("button-up");
+        textButtonStyle.down = skin.newDrawable("button-down", Color.DARK_GRAY);
+        textButtonStyle.font = skin.getFont("default-font");
+        skin.add("default", textButtonStyle);
+
+        // Create a Label style
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = skin.getFont("default-font");
+        skin.add("default", labelStyle);
+
+        // Create a Label style for the title
+        Label.LabelStyle titleStyle = new Label.LabelStyle();
+        titleStyle.font = skin.getFont("title-font");
+        skin.add("title", titleStyle); // Add the title style to the skin
+
+        // Window style (used for Dialog)
+        Window.WindowStyle windowStyle = new Window.WindowStyle();
+        windowStyle.background = skin.newDrawable("button-up", Color.DARK_GRAY);
+        windowStyle.titleFont = skin.getFont("default-font");
+        skin.add("dialog", windowStyle); // Register the "dialog" style
+
+        return skin;
+    }
 
     /**
-     * Adds listeners to the Start Game and Exit buttons.
+     * Adds listeners to the Start Game, Rules, and Exit buttons.
      */
     private void addButtonListeners() {
         // Listener for Start Game button
@@ -90,7 +153,7 @@ public class MainMenuScreen implements Screen {
         rulesButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                showGameRules(); 
+                showGameRules();
             }
         });
 
@@ -123,75 +186,21 @@ public class MainMenuScreen implements Screen {
         dialog.show(stage);
     }
 
-
     /**
-     * Displays a dialog indicating that the selected feature is not yet implemented.
+     * Displays a dialog with the game rules.
      */
-    private void showNotImplementedDialog() {
-        Dialog dialog = new Dialog("Not Implemented", skin, "dialog");
-        dialog.text("This feature is not yet implemented.");
-        dialog.button("OK");
-        dialog.show(stage);
-    }
-
-    /**
-     * Creates a basic skin programmatically for UI elements.
-     *
-     * @return The created skin.
-     */
-    private Skin createBasicSkin() {
-        Skin skin = new Skin();
-    
-        // Create a default font
-        BitmapFont font = new BitmapFont();
-        skin.add("default-font", font);
-    
-        // Create a larger font for the title
-        BitmapFont titleFont = new BitmapFont();
-        titleFont.getData().setScale(3); // Scale the font size to make it larger
-        skin.add("title-font", titleFont); // Add the title font to the skin
-    
-        // Create button textures
-        Pixmap pixmap = new Pixmap(200, 60, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.GRAY);
-        pixmap.fill();
-        Texture buttonTexture = new Texture(pixmap);
-        skin.add("button-up", buttonTexture);
-        pixmap.dispose();
-    
-        // TextButton style
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("button-up");
-        textButtonStyle.down = skin.newDrawable("button-up", Color.DARK_GRAY);
-        textButtonStyle.font = skin.getFont("default-font");
-        skin.add("default", textButtonStyle);
-    
-        // Label style for regular labels
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        skin.add("default", labelStyle);
-    
-        // Label style for the title
-        Label.LabelStyle titleStyle = new Label.LabelStyle();
-        titleStyle.font = skin.getFont("title-font");
-        skin.add("title", titleStyle); // Add the title style to the skin
-    
-        // Window style (used for Dialog)
-        Window.WindowStyle windowStyle = new Window.WindowStyle();
-        windowStyle.background = skin.newDrawable("button-up", Color.DARK_GRAY);
-        windowStyle.titleFont = skin.getFont("default-font");
-        skin.add("dialog", windowStyle);
-    
-        return skin;
-    }
-   
-    private void showGameRules(){
+    private void showGameRules() {
         Dialog dialog = new Dialog("Game Rules", skin, "dialog");
-        dialog.text("Here are the rules of the game:\n\n" + getRulesText()); // Replace getRulesText() with actual rules
+        dialog.text(getRulesText());
         dialog.button("OK");
         dialog.show(stage);
     }
 
+    /**
+     * Retrieves the game rules text.
+     *
+     * @return The game rules.
+     */
     private String getRulesText() {
         return "1. Players take turns placing tiles on the board. No standing tiles or cap (hat) tiles can be placed during the first round.\n"
              + "2. Players can stack flat tiles or standing tiles on top of flat tiles. Cap tiles cannot be stacked on top of other tiles.\n"
@@ -203,7 +212,30 @@ public class MainMenuScreen implements Screen {
              + "6. Each turn, players must either place a tile or move a tile/stack. Only cap tiles can flatten standing tiles and become part of a road.\n"
              + "7. The game ends when one of the victory conditions is met.";
     }
-    
+
+    @Override
+    public void render(float delta) {
+        // Clear the screen
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Update and draw the UI
+        stage.act(delta);
+        stage.draw();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        // Update the stage viewport
+        stage.getViewport().update(width, height, true);
+    }
+
+    @Override
+    public void dispose() {
+        stage.dispose();
+        skin.dispose();
+    }
 
     @Override
     public void show() {
@@ -211,20 +243,8 @@ public class MainMenuScreen implements Screen {
     }
 
     @Override
-    public void render(float delta) {
-        // Clear the screen
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Update and draw the stage
-        stage.act(delta);
-        stage.draw();
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        // Update the viewport
-        stage.getViewport().update(width, height, true);
+    public void hide() {
+        // Called when this screen is no longer the current screen
     }
 
     @Override
@@ -235,17 +255,5 @@ public class MainMenuScreen implements Screen {
     @Override
     public void resume() {
         // Called when the application is resumed
-    }
-
-    @Override
-    public void hide() {
-        // Called when this screen is no longer the current screen
-    }
-
-    @Override
-    public void dispose() {
-        // Dispose of assets
-        stage.dispose();
-        skin.dispose();
     }
 }

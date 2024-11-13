@@ -1,8 +1,16 @@
 // File: core/src/main/java/com/Tak/GUI/GameScreen.java
 package com.Tak.GUI;
 
-import com.Tak.AI.*;
-import com.Tak.Logic.*;
+import com.Tak.AI.players.AIPlayer;
+import com.Tak.GUI.UIManager.DropCountsCallback;
+import com.Tak.Logic.exceptions.GameOverException;
+import com.Tak.Logic.exceptions.InvalidMoveException;
+import com.Tak.Logic.models.Direction;
+import com.Tak.Logic.models.Piece;
+import com.Tak.Logic.models.Piece.PieceType;
+import com.Tak.Logic.models.Player;
+import com.Tak.Logic.models.TakGame;
+import com.Tak.Logic.utils.Logger;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
@@ -10,7 +18,6 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -19,8 +26,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 /**
  * The GameScreen class handles the main game screen, coordinating between the renderer, UI, and input handler.
  */
-public class GameScreen implements Screen {
-    public TakGameMain game;
+public class GameScreen implements Screen, GameInputHandler.UICallback {
+    private TakGameMain game;
     public int boardSize = 5;
     public TakGame takGame;
 
@@ -37,20 +44,25 @@ public class GameScreen implements Screen {
     public int moveCount = 0;
     private boolean useAI;
 
-    // Remove AIPlayer instance field if it's redundant
-    // private AIPlayer aiPlayer;
-
+    /**
+     * Constructor to initialize the GameScreen.
+     *
+     * @param game   The main game instance.
+     * @param useAI  Flag indicating whether AI is enabled.
+     */
     public GameScreen(TakGameMain game, boolean useAI) {
         this.game = game;
         this.useAI = useAI;
         create();
     }
 
+    /**
+     * Initializes the game components, camera, renderer, UI, and input handler.
+     */
     public void create() {
         // Initialize the game logic
         int aiPlayersCount = useAI ? 1 : 0;
         takGame = new TakGame(boardSize, useAI, aiPlayersCount);
-
 
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -74,22 +86,13 @@ public class GameScreen implements Screen {
         uiManager = new UIManager(takGame, this);
         uiManager.getStage().setViewport(new ScreenViewport());
 
-        // Initialize Input Handler
+        // Initialize Input Handler with UICallback implementation
         inputHandler = new GameInputHandler(camera, takGame, renderer, uiManager, this);
-
-        // **Remove the redundant AIPlayer initialization and addition**
-        /*
-        // Initialize AIPlayer if AI is enabled
-        if (useAI) {
-            aiPlayer = new AIPlayer(Player.Color.WHITE, 15, 6, 1, 3); // Example parameters
-            takGame.addPlayer(aiPlayer);
-        }
-        */
 
         // Set input processors
         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
 
-        addRulesButton();        
+        addRulesButton();
 
         // After setting up UI elements
         uiManager.updateHotbarColors();
@@ -97,6 +100,10 @@ public class GameScreen implements Screen {
         // Initialize ShapeRenderer for the selection arrow
         shapeRenderer = new ShapeRenderer();
     }
+
+    /**
+     * Adds the Rules button to the UI.
+     */
     private void addRulesButton() {
         rulesButton = new TextButton("Rules", uiManager.getSkin());
 
@@ -116,6 +123,9 @@ public class GameScreen implements Screen {
         });
     }
 
+    /**
+     * Displays the game rules in a dialog.
+     */
     private void showRulesDialog() {
         Dialog dialog = new Dialog("Rules", uiManager.getSkin(), "dialog");
         dialog.text(getRulesText());
@@ -123,6 +133,11 @@ public class GameScreen implements Screen {
         dialog.show(uiManager.getStage());
     }
 
+    /**
+     * Retrieves the game rules text.
+     *
+     * @return The game rules.
+     */
     private String getRulesText() {
         return "1. Players take turns placing tiles on the board. No standing tiles or cap (hat) tiles can be placed during the first round.\n"
              + "2. Players can stack flat tiles or standing tiles on top of flat tiles. Cap tiles cannot be stacked on top of other tiles.\n"
@@ -162,7 +177,6 @@ public class GameScreen implements Screen {
 
         // Handle AI move if it's AI's turn
         if (useAI && takGame.getCurrentPlayer() instanceof AIPlayer && !takGame.isGameEnded()) {
-            Gdx.app.log("GameScreen", "AI's turn detected. Initiating AI move.");
             handleAIMove();
         }
     }
@@ -172,46 +186,48 @@ public class GameScreen implements Screen {
             return; // Prevent multiple AI moves
         }
         isAIMoving = true;
-    
+
         // Disable input during AI move
         Gdx.input.setInputProcessor(null);
-    
+
         // Execute AI move asynchronously
         Timer.schedule(new Timer.Task(){
             @Override
             public void run() {
                 try {
                     AIPlayer ai = (AIPlayer) takGame.getCurrentPlayer();
-                    Gdx.app.log("GameScreen", ai.getColor() + " AI is making a move.");
                     ai.makeMove(takGame);
-                    Gdx.app.log("GameScreen", ai.getColor() + " AI has made a move.");
-                    
+
+                    // Update the rendering
                     renderer.updatePieceInstances();
-                    uiManager.addMoveToList(ai.toString());
+
+                    // Update UI elements
+                    uiManager.addMoveToList("AI moved");
                     uiManager.updatePlayerScores();
-                    uiManager.currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
-                    uiManager.updateHotbarColors();
-    
+                    updateCurrentPlayerLabel();
+                    updateHotbarColors();
+
                     // Check for game end
                     if (takGame.isGameEnded()) {
                         showGameOverDialog(takGame.getWinner());
                     }
-    
                 } catch (InvalidMoveException | GameOverException e) {
-                    showErrorDialog("AI Move Error: " + e.getMessage());
-                    Gdx.app.error("GameScreen", "AI Move Error", e);
-                } catch (Exception e) {
-                    showErrorDialog("Unexpected AI Error: " + e.getMessage());
-                    Gdx.app.error("GameScreen", "Unexpected AI Error", e);
+                    // Handle exceptions
+                    Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
                 } finally {
-                    // Re-enable input
-                    Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
+                    // Re-enable input if it's a human player's turn
+                    if (!(takGame.getCurrentPlayer() instanceof AIPlayer)) {
+                        Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
+                    }
                     isAIMoving = false;
                 }
             }
         }, 0.5f); // 0.5-second delay before AI makes a move
     }
 
+    /**
+     * Renders a selection arrow indicating the selected piece.
+     */
     private void renderSelectionArrow() {
         shapeRenderer.setProjectionMatrix(uiManager.getStage().getCamera().combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -259,16 +275,24 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void show() {}
+    public void show() {
+        // Called when this screen becomes the current screen
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+        // Called when this screen is no longer the current screen
+    }
 
     @Override
-    public void pause() {}
+    public void pause() {
+        // Called when the application is paused
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+        // Called when the application is resumed
+    }
 
     /**
      * Toggles the selection of a piece type. Selecting a piece type if not selected,
@@ -287,11 +311,13 @@ public class GameScreen implements Screen {
             // Deselect if already selected
             selectedPieceType = null;
             renderer.removeHoverOutline();
+            // pieceSelected = false; // Managed via isPieceSelected()
             Gdx.app.log("GameScreen", "Deselected " + pieceType);
         } else {
             // Select the new piece type
             selectedPieceType = pieceType;
             renderer.removeHoverOutline();
+            // pieceSelected = true; // Managed via isPieceSelected()
             Gdx.app.log("GameScreen", "Selected " + pieceType);
         }
     }
@@ -301,12 +327,28 @@ public class GameScreen implements Screen {
      */
     public void updateAfterGameReset() {
         renderer.updatePieceInstances();
-        uiManager.movesArray.clear();
-        uiManager.movesList.setItems(uiManager.movesArray.toArray(new String[0]));
-        uiManager.currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+        uiManager.clearMovesList();
         uiManager.updatePlayerScores();
+        updateCurrentPlayerLabel();
+        updateHotbarColors();
         selectedPieceType = null;
+        // pieceSelected = false; // Managed via isPieceSelected()
         renderer.removeHoverOutline();
+    }
+
+    /**
+     * Updates the current player label on the UI.
+     */
+    @Override
+    public void updateCurrentPlayerLabel() {
+        uiManager.currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+    }
+
+    /**
+     * Updates the hotbar colors based on the current game state.
+     */
+    @Override
+    public void updateHotbarColors() {
         uiManager.updateHotbarColors();
     }
 
@@ -315,21 +357,22 @@ public class GameScreen implements Screen {
      *
      * @param winner The player who won the game.
      */
+    @Override
     public void showGameOverDialog(Player winner) {
         String message;
         if (winner != null) {
-            message = winner.getColor() + " wins!\n" +
-                "Final Scores:\n" +
-                "Black: " + takGame.getPlayer1().getScore() + "\n" +
-                "White: " + takGame.getPlayer2().getScore();
+            message = winner.getColor() + " wins!\n"
+                + "Final Scores:\n"
+                + "Black: " + takGame.getPlayer1().getScore() + "\n"
+                + "White: " + takGame.getPlayer2().getScore();
         } else {
-            message = "It's a tie!\n" +
-                "Final Scores:\n" +
-                "Black: " + takGame.getPlayer1().getScore() + "\n" +
-                "White: " + takGame.getPlayer2().getScore();
+            message = "It's a tie!\n"
+                + "Final Scores:\n"
+                + "Black: " + takGame.getPlayer1().getScore() + "\n"
+                + "White: " + takGame.getPlayer2().getScore();
         }
 
-        Dialog dialog = new Dialog("Game Over", uiManager.getSkin(), "default") {
+        Dialog dialog = new Dialog("Game Over", uiManager.getSkin(), "dialog") {
             @Override
             protected void result(Object object) {
                 if (object.equals("newGame")) {
@@ -369,19 +412,46 @@ public class GameScreen implements Screen {
      *
      * @param errorMessage The error message to display.
      */
+    @Override
     public void showErrorDialog(String errorMessage) {
-        Dialog dialog = new Dialog("Error", uiManager.getSkin(), "default") {
-            @Override
-            protected void result(Object object) {
-                // Optional: Handle dialog result if needed
-            }
-        };
+        Dialog dialog = new Dialog("Error", uiManager.getSkin(), "dialog");
         dialog.text(errorMessage);
         dialog.button("OK");
         dialog.show(uiManager.getStage());
     }
 
-    public GameRenderer getRenderer() {
-        return renderer;
+
+    @Override
+    public void addMoveToList(String moveDescription) {
+        uiManager.addMoveToList(moveDescription);
     }
+
+    @Override
+    public void updatePlayerScores() {
+        uiManager.updatePlayerScores();
+    }
+
+    @Override
+    public void showDropCountsPrompt(int sourceX, int sourceY, Direction direction, DropCountsCallback callback) {
+        uiManager.promptForDropCounts(sourceX, sourceY, direction, callback);
+    }
+
+
+    @Override
+    public PieceType getSelectedPieceType() {
+        return selectedPieceType;
+    }
+
+    @Override
+    public void deselectPiece() {
+        selectedPieceType = null;
+        renderer.removeHoverOutline();
+        Gdx.app.log("GameScreen", "Piece deselected");
+    }
+
+    @Override
+    public boolean isPieceSelected() {
+        return selectedPieceType != null;
+    }
+
 }

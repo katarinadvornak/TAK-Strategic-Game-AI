@@ -1,6 +1,10 @@
+// File: core/src/main/java/com/Tak/GUI/UIManager.java
 package com.Tak.GUI;
 
-import com.Tak.Logic.*;
+import com.Tak.Logic.models.Direction;
+import com.Tak.Logic.models.Piece;
+import com.Tak.Logic.models.Player;
+import com.Tak.Logic.models.TakGame;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -10,14 +14,13 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import java.util.ArrayList;
 
 /**
  * The UIManager class handles the creation and management of UI elements.
- * It now includes counters for the remaining pieces next to the hotbar.
+ * It includes counters for the remaining pieces next to the hotbar and manages move lists.
  */
 public class UIManager {
     private Stage stage;
@@ -31,13 +34,24 @@ public class UIManager {
     public Image normalStoneImage, standingStoneImage, capstoneImage;
     public Table hotbarTable;
 
-    // **New: Labels for piece counts**
+    // New: Labels for piece counts
     private Label normalStoneCountLabel, standingStoneCountLabel, capstoneCountLabel;
 
     public ArrayList<String> movesArray;
 
     private TakGame takGame;
     private GameScreen gameScreen;
+
+    // Selection state
+    private boolean pieceSelected = false;
+    private Piece.PieceType selectedPieceType = null;
+
+    /**
+     * Interface to handle callbacks when drop counts are entered.
+     */
+    public interface DropCountsCallback {
+        void onDropCountsEntered(int[] dropCounts);
+    }
 
     /**
      * Constructor to initialize the UIManager with the game logic and screen reference.
@@ -48,13 +62,14 @@ public class UIManager {
     public UIManager(TakGame takGame, GameScreen gameScreen) {
         this.takGame = takGame;
         this.gameScreen = gameScreen;
-        stage = new Stage();
+        stage = new Stage(new ScreenViewport());
         createSkin();
         createUIElements();
     }
 
     /**
      * Creates a basic skin programmatically for UI elements.
+     * For scalability, consider using external skin files with texture atlases.
      */
     private void createSkin() {
         skin = new Skin();
@@ -77,7 +92,7 @@ public class UIManager {
         pixmapUp.dispose();
         pixmapDown.dispose();
 
-        // Create Drawable for cursor and selection before using them
+        // Create cursor and selection textures
         Pixmap cursorPixmap = new Pixmap(1, 20, Pixmap.Format.RGBA8888);
         cursorPixmap.setColor(Color.WHITE);
         cursorPixmap.fill();
@@ -99,7 +114,7 @@ public class UIManager {
         // Create a TextButton style
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
         textButtonStyle.up = skin.newDrawable("button-up");
-        textButtonStyle.down = skin.newDrawable("button-down");
+        textButtonStyle.down = skin.newDrawable("button-down", Color.DARK_GRAY);
         textButtonStyle.font = skin.getFont("default-font");
         skin.add("default", textButtonStyle);
 
@@ -138,12 +153,7 @@ public class UIManager {
         Window.WindowStyle windowStyle = new Window.WindowStyle();
         windowStyle.titleFont = skin.getFont("default-font");
         windowStyle.background = skin.newDrawable("window-background");
-        skin.add("default", windowStyle);
-        // **Add the "dialog" WindowStyle**
-        Window.WindowStyle dialogStyle = new Window.WindowStyle();
-        dialogStyle.titleFont = skin.getFont("default-font");
-        dialogStyle.background = skin.newDrawable("window-background");
-        skin.add("dialog", dialogStyle); // Register the "dialog" style
+        skin.add("dialog", windowStyle); // Register the "dialog" style
     }
 
     /**
@@ -195,7 +205,7 @@ public class UIManager {
         // Move List
         leftPanel.add(movesScrollPane).height(300).width(300).expandY().fillY().row(); // Increased height and width
 
-        // **New: Create hotbar panel with piece counters**
+        // New: Create hotbar panel with piece counters
         Table hotbarPanel = new Table();
         hotbarPanel.defaults().pad(5); // Padding between hotbar items
 
@@ -209,7 +219,7 @@ public class UIManager {
         Label standingStoneLabel = new Label("Standing Stone", skin);
         Label capstoneLabel = new Label("Capstone", skin);
 
-        // **Initialize new piece count labels**
+        // Initialize new piece count labels
         normalStoneCountLabel = new Label("Left: 0", skin);
         standingStoneCountLabel = new Label("Left: 0", skin);
         capstoneCountLabel = new Label("Left: 0", skin);
@@ -251,7 +261,7 @@ public class UIManager {
         addButtonListeners();
         addHotbarListeners();
 
-        // **After setting up UI elements, update the hotbar colors and piece counts**
+        // After setting up UI elements, update the hotbar colors and piece counts
         updateHotbarColors();
     }
 
@@ -307,6 +317,101 @@ public class UIManager {
     }
 
     /**
+     * Checks if a piece is currently selected.
+     *
+     * @return True if a piece is selected, false otherwise.
+     */
+    public boolean isPieceSelected() {
+        return pieceSelected;
+    }
+
+    /**
+     * Retrieves the currently selected piece type.
+     *
+     * @return The selected PieceType, or null if no piece is selected.
+     */
+    public Piece.PieceType getSelectedPieceType() {
+        return selectedPieceType;
+    }
+
+    /**
+     * Deselects the currently selected piece.
+     */
+    public void deselectPiece() {
+        pieceSelected = false;
+        selectedPieceType = null;
+    }
+
+    /**
+     * Prompts the user to enter drop counts for moving a stack of pieces.
+     * Allows the user to leave the input empty to move a single piece by default.
+     *
+     * @param sourceX   The x-coordinate of the source position.
+     * @param sourceY   The y-coordinate of the source position.
+     * @param direction The direction in which to move the stack.
+     * @param callback  The callback to handle the entered drop counts.
+     */
+    public void promptForDropCounts(int sourceX, int sourceY, Direction direction, DropCountsCallback callback) {
+        TextField dropCountsField = new TextField("", skin);
+        Dialog dialog = new Dialog("Enter Drop Counts", skin, "dialog") {
+            @Override
+            protected void result(Object object) {
+                if (object.equals("ok")) {
+                    String input = dropCountsField.getText().trim();
+                    try {
+                        int[] dropCounts;
+
+                        if (input.isEmpty()) {
+                            // Handle Empty Input: Default to moving one piece
+                            dropCounts = new int[]{1};
+                            Gdx.app.log("UIManager", "Empty input detected. Defaulting to move 1 piece.");
+                        } else {
+                            // Handle Multiple Piece Moves
+                            String[] tokens = input.split(",");
+                            dropCounts = new int[tokens.length];
+                            for (int i = 0; i < tokens.length; i++) {
+                                if (tokens[i].trim().isEmpty()) {
+                                    throw new NumberFormatException("Empty move count detected between commas.");
+                                }
+                                dropCounts[i] = Integer.parseInt(tokens[i].trim());
+                                if (dropCounts[i] <= 0) {
+                                    throw new NumberFormatException("Move counts must be positive integers.");
+                                }
+                            }
+                            Gdx.app.log("UIManager", "Parsed drop counts: " + java.util.Arrays.toString(dropCounts));
+                        }
+
+                        // Execute the callback with the parsed drop counts
+                        callback.onDropCountsEntered(dropCounts);
+
+                    } catch (NumberFormatException e) {
+                        // Handle invalid number format
+                        showErrorDialog("Invalid input for drop counts. Please enter positive integers separated by commas.");
+                    } catch (Exception e) {
+                        // Handle any unexpected exceptions
+                        showErrorDialog("An unexpected error occurred: " + e.getMessage());
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }
+                        
+    public void showErrorDialog(String errorMessage) {
+        Dialog dialog = new Dialog("Error", skin, "dialog");
+        dialog.text(errorMessage);
+        dialog.button("OK");
+        dialog.show(stage);
+    }
+
+        };
+        dialog.getContentTable().add(new Label("Enter drop counts separated by commas (leave blank to move 1 piece):", skin));
+        dialog.getContentTable().row();
+        dialog.getContentTable().add(dropCountsField).width(200);
+        dialog.button("OK", "ok");
+        dialog.button("Cancel", "cancel");
+        dialog.show(stage);
+    }
+
+    /**
      * Updates the hotbar colors and piece count labels based on the current game state.
      */
     public void updateHotbarColors() {
@@ -314,7 +419,7 @@ public class UIManager {
 
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
-            // **First two moves: players place opponent's pieces**
+            // First two moves: players place opponent's pieces
             targetPlayer = takGame.getOpponentPlayer();
             // Hide standing stone and capstone during first two moves
             standingStoneImage.setVisible(false);
@@ -322,7 +427,7 @@ public class UIManager {
             capstoneImage.setVisible(false);
             capstoneCountLabel.setVisible(false);
         } else {
-            // **After first two moves: players place their own pieces**
+            // After first two moves: players place their own pieces
             targetPlayer = takGame.getCurrentPlayer();
             // Show standing stone and capstone
             standingStoneImage.setVisible(true);
@@ -344,7 +449,7 @@ public class UIManager {
             capstoneImage.invalidate();
         }
 
-        // **Update the piece count labels**
+        // Update the piece count labels
         normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
         standingStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
         capstoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
@@ -370,6 +475,14 @@ public class UIManager {
      */
     public void addMoveToList(String moveDescription) {
         movesArray.add(moveDescription);
+        movesList.setItems(movesArray.toArray(new String[0]));
+    }
+
+    /**
+     * Clears the moves list.
+     */
+    public void clearMovesList() {
+        movesArray.clear();
         movesList.setItems(movesArray.toArray(new String[0]));
     }
 
@@ -500,6 +613,14 @@ public class UIManager {
         Texture texture = new Texture(pixmap);
         pixmap.dispose();
         return texture;
+    }
+
+    /**
+     * Deselects the currently selected piece type.
+     */
+    public void deselectCurrentPiece() {
+        pieceSelected = false;
+        selectedPieceType = null;
     }
 
     /**

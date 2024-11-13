@@ -1,9 +1,9 @@
 package com.Tak.GUI;
 
-import com.Tak.Logic.Board;
-import com.Tak.Logic.Piece;
-import com.Tak.Logic.Player;
-import com.Tak.Logic.TakGame;
+import com.Tak.Logic.models.Board;
+import com.Tak.Logic.models.Piece;
+import com.Tak.Logic.models.Player;
+import com.Tak.Logic.models.TakGame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
@@ -37,8 +37,15 @@ public class GameRenderer {
     public ModelInstance selectionHighlightInstance;
 
     // Define tile size for consistent scaling (assuming 1 unit per tile)
-    private final float TILE_SIZE = 1.0f; // Adjust based on your game's scaling
+    final float TILE_SIZE = 1.0f; // Adjust based on your game's scaling
 
+    /**
+     * Constructor to initialize the GameRenderer.
+     *
+     * @param camera    The PerspectiveCamera used for rendering.
+     * @param boardSize The size of the game board.
+     * @param takGame   The current TakGame instance.
+     */
     public GameRenderer(PerspectiveCamera camera, int boardSize, TakGame takGame) {
         this.camera = camera;
         this.boardSize = boardSize;
@@ -46,6 +53,9 @@ public class GameRenderer {
         initializeRendering();
     }
 
+    /**
+     * Initializes rendering components, including models and environment.
+     */
     private void initializeRendering() {
         modelBatch = new ModelBatch();
         environment = new Environment();
@@ -58,6 +68,7 @@ public class GameRenderer {
         Texture boardTexture;
         try {
             boardTexture = new Texture(Gdx.files.internal("board_texture.png")); // Ensure board_texture.png is in assets
+            boardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         } catch (Exception e) {
             Gdx.app.error("GameRenderer", "Failed to load board_texture.png", e);
             throw new GdxRuntimeException("Missing asset: board_texture.png");
@@ -75,21 +86,25 @@ public class GameRenderer {
         // **Adjusted Model Sizes for Pieces**
 
         // Flat Stone: Cylinder with increased radius and same height
-        flatStoneModel = modelBuilder.createCylinder(0.6f, 0.1f, 0.6f, 32, // Increased radius from 0.4f to 0.6f
+        flatStoneModel = modelBuilder.createCylinder(0.6f, 0.1f, 0.6f, 32,
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         // Standing Stone: Box with reduced width and depth, same height
-        standingStoneModel = modelBuilder.createBox(0.5f, 0.3f, 0.5f, // Reduced dimensions for better fit
+        standingStoneModel = modelBuilder.createBox(0.5f, 0.3f, 0.5f,
             new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         // Capstone: Cone with increased base diameter and increased height
-        capstoneModel = modelBuilder.createCone(0.6f, 0.4f, 0.6f, 32, // Increased base diameter from 0.5f to 0.6f and height from 0.3f to 0.4f
+        capstoneModel = modelBuilder.createCone(0.6f, 0.4f, 0.6f, 32,
             new Material(ColorAttribute.createDiffuse(Color.RED)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         pieceInstances = new Array<>();
+
+        // Initialize hover and selection outlines as null
+        hoverOutlineInstance = null;
+        selectionHighlightInstance = null;
     }
 
     /**
@@ -121,7 +136,6 @@ public class GameRenderer {
                         Model model = getModelForPiece(piece);
                         ModelInstance pieceInstance = new ModelInstance(model);
 
-                        // **Adjusted Positioning to Prevent Overlapping and Embedding**
                         // Calculate position based on tile size and height offset
                         float posX = x * TILE_SIZE + TILE_SIZE / 2f;
                         float posZ = y * TILE_SIZE + TILE_SIZE / 2f;
@@ -157,7 +171,9 @@ public class GameRenderer {
             pieceInstances.add(selectionHighlightInstance);
         }
     }
-
+    public ModelInstance getBoardInstance() {
+        return boardInstance;
+    }
     /**
      * Returns the appropriate model for a given piece type.
      *
@@ -176,7 +192,10 @@ public class GameRenderer {
                 return flatStoneModel;
         }
     }
-
+    public float getTileSize() {
+        return TILE_SIZE;
+    }
+    
     /**
      * Returns the height for a given piece type.
      *
