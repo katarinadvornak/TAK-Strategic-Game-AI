@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Move class represents a move made by a player.
+ * The Move class represents a movement action in Tak.
  * It includes information about the move's starting position,
  * direction, number of pieces being moved, and drop counts.
  * The class provides methods to execute and undo the move on a game board.
@@ -132,40 +132,15 @@ public class Move extends Action {
      */
     @Override
     public void undo(Board board) {
-        // Remove the pieces from their current positions
-        int numPositions = positionsX.size();
-        int index = movedPieces.size();
-
-        for (int i = numPositions - 1; i > 0; i--) {
-            int x = positionsX.get(i);
-            int y = positionsY.get(i);
-            int dropCount = dropCounts.get(i - 1);
-
-            List<Piece> destinationStack = board.getBoardPosition(x, y);
-            int size = destinationStack.size();
-
-            // Remove the pieces that were added during execution
-            List<Piece> piecesToRemove = destinationStack.subList(size - dropCount, size);
-            destinationStack.removeAll(piecesToRemove);
-
-            // Restore any changes made to pieces (e.g., standing stone restored)
-            // Assuming we have a way to restore the original state if necessary
-
-            index -= dropCount;
-        }
-
-        // Restore the pieces to the original stack
-        int startX = positionsX.get(0);
-        int startY = positionsY.get(0);
-        List<Piece> fromStack = board.getBoardPosition(startX, startY);
-        fromStack.addAll(movedPieces);
-
-        // Clear stored data
-        movedPieces.clear();
-        positionsX.clear();
-        positionsY.clear();
+        // TODO: Implement the undo functionality for the move.
+        // This should reverse the actions performed in the execute method.
+        // Steps may include:
+        // 1. Remove the moved pieces from their current positions.
+        // 2. Restore them back to the original stack.
+        // 3. Reverse any state changes (e.g., flattening of standing stones).
+        throw new UnsupportedOperationException("Undo method not implemented for Move.");
     }
-
+    
     /**
      * Checks if the moving piece can be legally stacked on top of the target piece.
      *
@@ -183,48 +158,46 @@ public class Move extends Action {
         return true;
     }
 
-    /**
-     * Gets the starting X coordinate.
-     *
-     * @return The starting X coordinate.
-     */
+    // Getters for properties if needed
     public int getStartX() {
         return this.startX;
     }
 
-    /**
-     * Gets the starting Y coordinate.
-     *
-     * @return The starting Y coordinate.
-     */
     public int getStartY() {
         return this.startY;
     }
 
-    /**
-     * Gets the direction of the move.
-     *
-     * @return The direction of the move.
-     */
     public Direction getDirection() {
         return this.direction;
     }
 
-    /**
-     * Gets the number of pieces being moved.
-     *
-     * @return The number of pieces being moved.
-     */
     public int getNumberOfPieces() {
         return this.numberOfPieces;
     }
 
-    /**
-     * Gets the list of drop counts.
-     *
-     * @return The list of drop counts.
-     */
     public List<Integer> getDropCounts() {
         return this.dropCounts;
+    }
+
+    @Override
+    public String toString() {
+        return "Move: " + numberOfPieces + " pieces from (" + startX + ", " + startY + ") to " + direction + " with dropCounts " + dropCounts;
+    }
+
+    public int[] getDropCountsArray() {
+        // Convert List<Integer> dropCounts to int[] for easier handling
+        return this.dropCounts.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    @Override
+    public Player getPlayer() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getPlayer'");
+    }
+
+    @Override
+    public Player getActionPlayer() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getActionPlayer'");
     }
 }

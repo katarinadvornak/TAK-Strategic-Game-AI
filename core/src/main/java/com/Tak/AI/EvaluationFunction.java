@@ -1,83 +1,181 @@
+// File: core/src/main/java/com/Tak/AI/EvaluationFunction.java
 package com.Tak.AI;
 
-import com.Tak.Logic.Board;
-import com.Tak.Logic.Player;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.Tak.Logic.*;
+import com.Tak.Logic.Piece.PieceType;
 
 /**
- * The EvaluationFunction class provides methods to evaluate the desirability
- * of a board state from the AI's perspective.
+ * The EvaluationFunction class evaluates the game board from the AI's perspective.
+ * It assigns scores based on various strategic factors.
  */
 public class EvaluationFunction {
-
-    /**
-     * Evaluates the board state and returns a numerical score representing
-     * how favorable the board is for the AI player.
-     *
-     * @param board    The current game board.
-     * @param aiPlayer The AI player.
-     * @return A double score indicating the favorability of the board state.
-     */
-    public double evaluate(Board board, Player aiPlayer) {
-        // Placeholder method body
-        return 0.0;
+    
+    private RoadConnectivity roadChecker;
+    
+    public EvaluationFunction() {
+        this.roadChecker = new RoadConnectivity();
     }
 
     /**
-     * Counts the number of flat stones owned by the player that are on top of stacks.
+     * Evaluates the current board state and returns a score.
      *
-     * @param board   The current game board.
-     * @param player  The player whose flat stones to count.
-     * @return The count of flat stones on top.
+     * @param board  The current game board.
+     * @param player The Player instance (can be AIPlayer or HumanPlayer).
+     * @return The evaluated score of the board.
      */
-    private int evaluateFlatStonesOnTop(Board board, Player player) {
-        // Placeholder method body
-        return 0;
+    public double evaluate(Board board, Player player) {
+        double score = 0.0;
+        
+        // Road Potential
+        score += evaluateRoadPotential(board, player) * 10;
+        
+        // Blocking Potential
+        score += evaluateBlockingPotential(board, player) * 15;
+        
+        // Mobility
+        score += evaluatePieceMobility(board, player) * 5;
+        
+        // Central Control
+        score += evaluateCentralControl(board, player) * 2;
+        
+        return score;
+    }
+    
+    /**
+     * Evaluates the road potential for the player.
+     *
+     * @param board  The current game board.
+     * @param player The Player instance.
+     * @return The road potential score.
+     */
+    public double evaluateRoadPotential(Board board, Player player) {
+        return roadChecker.evaluateRoadPotential(board, player);
+    }
+    
+    /**
+     * Evaluates the blocking potential against the opponent.
+     *
+     * @param board  The current game board.
+     * @param player The Player instance.
+     * @return The blocking potential score.
+     */
+    public double evaluateBlockingPotential(Board board, Player player) {
+        Player opponent = player.getOpponent();
+        double opponentRoadPotential = roadChecker.evaluateRoadPotential(board, opponent);
+        return opponentRoadPotential > 0 ? -100.0 : 0.0;
+    }
+    
+    /**
+     * Evaluates the mobility of the player.
+     *
+     * @param board  The current game board.
+     * @param player The Player instance.
+     * @return The mobility score.
+     */
+    public double evaluatePieceMobility(Board board, Player player) {
+        int mobility = countValidMoves(board, player);
+        return mobility * 2.0; // Each valid move contributes positively
+    }
+    
+    /**
+     * Evaluates the central control of the player.
+     *
+     * @param board  The current game board.
+     * @param player The Player instance.
+     * @return The central control score.
+     */
+    public double evaluateCentralControl(Board board, Player player) {
+        double centralScore = 0.0;
+        int size = board.getSize();
+        double center = (size - 1) / 2.0;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                Piece topPiece = board.getPieceAt(x, y);
+                if (topPiece != null && topPiece.getOwner() == player) {
+                    double distance = Math.sqrt(Math.pow(x - center, 2) + Math.pow(y - center, 2));
+                    centralScore += (size - distance); // Closer to center yields higher score
+                }
+            }
+        }
+        return centralScore;
+    }
+    
+    /**
+     * Counts the number of valid moves available to the player.
+     *
+     * @param board  The current game board.
+     * @param player The Player instance.
+     * @return The number of valid moves.
+     */
+    private int countValidMoves(Board board, Player player) {
+        int count = 0;
+        int size = board.getSize();
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                Piece topPiece = board.getPieceAt(x, y);
+                if (topPiece != null && topPiece.getOwner() == player && topPiece.canBePartOfRoad()) {
+                    // Possible placement actions
+                    if (player.hasPiecesLeft(Piece.PieceType.FLAT_STONE) || player.hasPiecesLeft(Piece.PieceType.CAPSTONE)) {
+                        count++;
+                    }
+                    
+                    // Possible move actions
+                    for (Direction dir : Direction.values()) {
+                        // Generate possible drop counts based on carry limit
+                        int carryLimit = board.getCarryLimit();
+                        List<List<Integer>> possibleDrops = generateDropCounts(carryLimit, 4); // Assuming max 4 steps
+                        for (List<Integer> drop : possibleDrops) {
+                            int totalDrops = drop.stream().mapToInt(Integer::intValue).sum();
+                            if (totalDrops <= carryLimit) {
+                                count++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Generates all possible drop counts for a given carry limit and number of steps.
+     *
+     * @param carryLimit The maximum number of pieces to carry.
+     * @param steps      The number of steps to distribute the drops.
+     * @return A list of possible drop counts.
+     */
+    private List<List<Integer>> generateDropCounts(int carryLimit, int steps) {
+        List<List<Integer>> results = new ArrayList<>();
+        generateDropCountsHelper(carryLimit, steps, new ArrayList<>(), results);
+        return results;
+    }
+    
+    /**
+     * Helper method to recursively generate drop counts.
+     */
+    private void generateDropCountsHelper(int remaining, int steps, List<Integer> current, List<List<Integer>> results) {
+        if (steps == 1) {
+            current.add(remaining);
+            results.add(new ArrayList<>(current));
+            current.remove(current.size() - 1);
+            return;
+        }
+        for (int i = 1; i <= remaining - (steps - 1); i++) {
+            current.add(i);
+            generateDropCountsHelper(remaining - i, steps - 1, current, results);
+            current.remove(current.size() - 1);
+        }
     }
 
     /**
-     * Evaluates the control of the center by the player.
+     * Creates a copy of this EvaluationFunction.
      *
-     * @param board   The current game board.
-     * @param player  The player to evaluate.
-     * @return A score indicating control of the center.
+     * @return A new EvaluationFunction instance.
      */
-    private double evaluateCenterControl(Board board, Player player) {
-        // Placeholder method body
-        return 0.0;
-    }
-
-    /**
-     * Assesses the mobility of the player's pieces.
-     *
-     * @param board   The current game board.
-     * @param player  The player to evaluate.
-     * @return A score indicating piece mobility.
-     */
-    private double evaluatePieceMobility(Board board, Player player) {
-        // Placeholder method body
-        return 0.0;
-    }
-
-    /**
-     * Calculates the difference in remaining pieces between the AI and the opponent.
-     *
-     * @param aiPlayer The AI player.
-     * @param opponent The opponent player.
-     * @return A score based on the difference in remaining pieces.
-     */
-    private double evaluateRemainingPieces(Player aiPlayer, Player opponent) {
-        // Placeholder method body
-        return 0.0;
-    }
-
-    /**
-     * Gets the opponent player.
-     *
-     * @param player The current player.
-     * @return The opponent player.
-     */
-    private Player getOpponent(Player player) {
-        // Placeholder method body
-        return null;
+    public EvaluationFunction copy() {
+        return new EvaluationFunction();
     }
 }

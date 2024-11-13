@@ -1,5 +1,7 @@
+// File: core/src/main/java/com/Tak/GUI/GameScreen.java
 package com.Tak.GUI;
 
+import com.Tak.AI.*;
 import com.Tak.Logic.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
@@ -10,9 +12,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.Color;
 
 /**
  * The GameScreen class handles the main game screen, coordinating between the renderer, UI, and input handler.
@@ -29,23 +31,27 @@ public class GameScreen implements Screen {
     private GameInputHandler inputHandler;
 
     public Piece.PieceType selectedPieceType;
-
+    private boolean isAIMoving = false;
     private TextButton rulesButton;
     private ShapeRenderer shapeRenderer;
     public int moveCount = 0;
+    private boolean useAI;
 
-    public GameScreen(TakGameMain game) {
+    // Remove AIPlayer instance field if it's redundant
+    // private AIPlayer aiPlayer;
+
+    public GameScreen(TakGameMain game, boolean useAI) {
         this.game = game;
+        this.useAI = useAI;
         create();
     }
 
     public void create() {
         // Initialize the game logic
-        takGame = new TakGame(boardSize,true);
-    
-        // **Remove or comment out the fullscreen mode setting**
-        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-    
+        int aiPlayersCount = useAI ? 1 : 0;
+        takGame = new TakGame(boardSize, useAI, aiPlayersCount);
+
+
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(boardSize * 2f, boardSize * 2f, boardSize * 2f); // Position the camera
@@ -53,27 +59,36 @@ public class GameScreen implements Screen {
         camera.near = 0.1f;
         camera.far = 100f;
         camera.update();
-    
+
         // Initialize the camera controller
         camController = new CameraInputController(camera);
         camController.rotateButton = Input.Buttons.RIGHT; // Use right mouse button for rotation
         camController.translateButton = Input.Buttons.MIDDLE; // For panning
         camController.scrollFactor = -0.1f; // Zoom in/out with mouse wheel
-    
+
         // Initialize Renderer
         renderer = new GameRenderer(camera, boardSize, takGame);
         renderer.updatePieceInstances();
-    
+
         // Initialize UI Manager
         uiManager = new UIManager(takGame, this);
         uiManager.getStage().setViewport(new ScreenViewport());
-    
+
         // Initialize Input Handler
         inputHandler = new GameInputHandler(camera, takGame, renderer, uiManager, this);
-    
+
+        // **Remove the redundant AIPlayer initialization and addition**
+        /*
+        // Initialize AIPlayer if AI is enabled
+        if (useAI) {
+            aiPlayer = new AIPlayer(Player.Color.WHITE, 15, 6, 1, 3); // Example parameters
+            takGame.addPlayer(aiPlayer);
+        }
+        */
+
         // Set input processors
         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
-    
+
         addRulesButton();        
 
         // After setting up UI elements
@@ -81,8 +96,7 @@ public class GameScreen implements Screen {
 
         // Initialize ShapeRenderer for the selection arrow
         shapeRenderer = new ShapeRenderer();
-    }    
-
+    }
     private void addRulesButton() {
         rulesButton = new TextButton("Rules", uiManager.getSkin());
 
@@ -131,6 +145,9 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
+        // Update the rendering instances in case the AI made a move
+        renderer.updatePieceInstances();
+
         // Render the game
         renderer.render();
 
@@ -142,6 +159,57 @@ public class GameScreen implements Screen {
         // Update and draw the UI
         uiManager.getStage().act(delta);
         uiManager.getStage().draw();
+
+        // Handle AI move if it's AI's turn
+        if (useAI && takGame.getCurrentPlayer() instanceof AIPlayer && !takGame.isGameEnded()) {
+            Gdx.app.log("GameScreen", "AI's turn detected. Initiating AI move.");
+            handleAIMove();
+        }
+    }
+
+    private void handleAIMove() {
+        if (isAIMoving) {
+            return; // Prevent multiple AI moves
+        }
+        isAIMoving = true;
+    
+        // Disable input during AI move
+        Gdx.input.setInputProcessor(null);
+    
+        // Execute AI move asynchronously
+        Timer.schedule(new Timer.Task(){
+            @Override
+            public void run() {
+                try {
+                    AIPlayer ai = (AIPlayer) takGame.getCurrentPlayer();
+                    Gdx.app.log("GameScreen", ai.getColor() + " AI is making a move.");
+                    ai.makeMove(takGame);
+                    Gdx.app.log("GameScreen", ai.getColor() + " AI has made a move.");
+                    
+                    renderer.updatePieceInstances();
+                    uiManager.addMoveToList(ai.toString());
+                    uiManager.updatePlayerScores();
+                    uiManager.currentPlayerLabel.setText("Current Player: " + takGame.getCurrentPlayer().getColor());
+                    uiManager.updateHotbarColors();
+    
+                    // Check for game end
+                    if (takGame.isGameEnded()) {
+                        showGameOverDialog(takGame.getWinner());
+                    }
+    
+                } catch (InvalidMoveException | GameOverException e) {
+                    showErrorDialog("AI Move Error: " + e.getMessage());
+                    Gdx.app.error("GameScreen", "AI Move Error", e);
+                } catch (Exception e) {
+                    showErrorDialog("Unexpected AI Error: " + e.getMessage());
+                    Gdx.app.error("GameScreen", "Unexpected AI Error", e);
+                } finally {
+                    // Re-enable input
+                    Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
+                    isAIMoving = false;
+                }
+            }
+        }, 0.5f); // 0.5-second delay before AI makes a move
     }
 
     private void renderSelectionArrow() {
@@ -266,9 +334,23 @@ public class GameScreen implements Screen {
             protected void result(Object object) {
                 if (object.equals("newGame")) {
                     takGame.resetGame(true); // Reset both board and scores
+                    if (useAI) {
+                        // If AI uses learning, reset its state
+                        Player ai = takGame.getPlayer2();
+                        if (ai instanceof AIPlayer) {
+                            ((AIPlayer) ai).resetAI();
+                        }
+                    }
                     updateAfterGameReset();
                 } else if (object.equals("continue")) {
                     takGame.resetGame(false); // Reset board but keep scores
+                    if (useAI) {
+                        // If AI uses learning, reset its state
+                        Player ai = takGame.getPlayer2();
+                        if (ai instanceof AIPlayer) {
+                            ((AIPlayer) ai).resetAI();
+                        }
+                    }
                     updateAfterGameReset();
                 } else if (object.equals("exit")) {
                     Gdx.app.exit();

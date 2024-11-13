@@ -1,7 +1,15 @@
+// File: core/src/main/java/com/Tak/Logic/Board.java
 package com.Tak.Logic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import com.Tak.utils.Logger;
 
 /**
  * The Board class represents the game board for Tak.
@@ -11,6 +19,7 @@ public class Board {
     private int size; // Board size (e.g., 5 for a 5x5 board)
     private List<Piece>[][] board;  // 2D array to hold stacks of pieces at each board position
     private final int CARRY_LIMIT; // Maximum number of pieces that can be moved
+    private List<Player> players; // Reference to all players in the game
 
     /**
      * Constructor to initialize the board with a specified size.
@@ -28,6 +37,29 @@ public class Board {
                 board[x][y] = new ArrayList<>();
             }
         }
+        this.players = new ArrayList<>(); // Initialize the players list
+    }
+
+    /**
+     * Sets the list of players for the board.
+     *
+     * @param players The list of players participating in the game.
+     */
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+    }
+
+    /**
+     * Returns the carry limit.
+     *
+     * @return The carry limit.
+     */
+    public int getCarryLimit() {
+        return this.CARRY_LIMIT;
+    }
+    
+    public List<Player> getPlayers() {
+        return this.players;
     }
 
     /**
@@ -55,33 +87,23 @@ public class Board {
     }
 
     /**
-     * Checks if the specified position is a valid position on the board.
-     *
-     * @param x The X coordinate.
-     * @param y The Y coordinate.
-     * @return True if the position is valid, false otherwise.
-     */
-    public boolean isValidPosition(int x, int y) {
-        return x >= 0 && x < size && y >= 0 && y < size;
-    }
-
-    /**
      * Places a piece on the board at a specific location.
      * Checks if the move is valid and if the piece can be placed.
      *
      * @param x             The X coordinate.
      * @param y             The Y coordinate.
      * @param piece         The piece to be placed.
-     * @param currentPlayer The player making the move.
+     * @param pieceOwner    The player owning the piece.
      * @throws InvalidMoveException If the move is invalid.
      */
-    public void placePiece(int x, int y, Piece piece, Player currentPlayer) throws InvalidMoveException {
+    public void placePiece(int x, int y, Piece piece, Player pieceOwner) throws InvalidMoveException {
         if (!isWithinBounds(x, y)) {
             throw new InvalidMoveException("Position is out of bounds.");
         }
         List<Piece> stack = getBoardPosition(x, y);
         if (stack.isEmpty()) {
             stack.add(piece);
+            Logger.log("Board", pieceOwner.getColor() + " placed " + piece.getPieceType() + " at (" + x + ", " + y + ").");
         } else {
             throw new InvalidMoveException("Cannot place a piece on top of an existing stack during placement.");
         }
@@ -105,7 +127,7 @@ public class Board {
         List<Piece> fromStack = getBoardPosition(x, y);
         int totalPiecesToMove = move.getNumberOfPieces();
         List<Integer> dropCounts = move.getDropCounts();
-        List<Piece> piecesToMove = new ArrayList<>(fromStack.subList(fromStack.size() - totalPiecesToMove, fromStack.size()));
+        List<Piece> movingPieces = new ArrayList<>(fromStack.subList(fromStack.size() - totalPiecesToMove, fromStack.size()));
         fromStack.subList(fromStack.size() - totalPiecesToMove, fromStack.size()).clear();
         Direction direction = move.getDirection();
         for (int count : dropCounts) {
@@ -127,19 +149,21 @@ public class Board {
                 throw new InvalidMoveException("Move goes out of bounds.");
             }
             List<Piece> toStack = getBoardPosition(x, y);
-            List<Piece> piecesToDrop = new ArrayList<>(piecesToMove.subList(0, count));
-            piecesToMove.subList(0, count).clear();
+            List<Piece> piecesToDrop = new ArrayList<>(movingPieces.subList(0, count));
+            movingPieces.subList(0, count).clear();
             Piece topPiece = piecesToDrop.get(piecesToDrop.size() - 1);
             if (!toStack.isEmpty()) {
-                Piece targetTopPiece = toStack.get(toStack.size() - 1);
+                Piece targetTopPiece = toStack.get(toStack.size() - 1); // Corrected variable name
                 if (!canStackOnTop(topPiece, targetTopPiece)) {
                     throw new InvalidMoveException("Cannot stack on top of the target stack.");
                 }
                 if (topPiece.isCapstone() && targetTopPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
                     targetTopPiece.setPieceType(Piece.PieceType.FLAT_STONE);
+                    Logger.log("Board", "Capstone flattened a standing stone at (" + x + ", " + y + ").");
                 }
             }
             toStack.addAll(piecesToDrop);
+            Logger.log("Board", currentPlayer.getColor() + " dropped " + count + " pieces at (" + x + ", " + y + ").");
         }
     }
 
@@ -206,36 +230,6 @@ public class Board {
     }
 
     /**
-     * Checks if a move is valid based on the game rules.
-     * Ensures that the move is orthogonal, within bounds, and follows stacking rules.
-     *
-     * @param fromX          The starting X coordinate.
-     * @param fromY          The starting Y coordinate.
-     * @param toX            The target X coordinate.
-     * @param toY            The target Y coordinate.
-     * @param numberOfPieces The number of pieces being moved.
-     * @param currentPlayer  The player making the move.
-     * @return true if the move is valid, false otherwise.
-     */
-    public boolean isValidMove(int fromX, int fromY, int toX, int toY, int numberOfPieces, Player currentPlayer) {
-        if (!isWithinBounds(fromX, fromY) || !isWithinBounds(toX, toY)) {
-            return false;
-        }
-        if (fromX != toX && fromY != toY) {
-            return false;
-        }
-        List<Piece> fromStack = getBoardPosition(fromX, fromY);
-        if (fromStack.size() < numberOfPieces || numberOfPieces > CARRY_LIMIT) {
-            return false;
-        }
-        Piece topPiece = fromStack.get(fromStack.size() - 1);
-        if (topPiece.getOwner() != currentPlayer) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * Checks if a piece can be legally stacked on top of the target piece.
      *
      * @param movingPiece The piece attempting to stack.
@@ -283,10 +277,10 @@ public class Board {
      *
      * @return true if the board is full, false otherwise.
      */
-    public boolean isBoardFull() {
+    public boolean isFull() {
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
-                if (getBoardPosition(x, y).isEmpty()) {
+                if (board[x][y].isEmpty()) {
                     return false;
                 }
             }
@@ -295,38 +289,72 @@ public class Board {
     }
 
     /**
-     * Resets the board to its initial empty state.
+     * Resets the board to an empty state and prints the board layout.
      */
-    public void resetBoard() {
+    public void reset() {
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
-                getBoardPosition(x, y).clear();
+                board[x][y].clear();
             }
+        }
+        Logger.log("Board", "Board has been reset.");
+        
+        // Print the current state of the board
+        System.out.println("Current Board State after Reset:");
+        for (int y = size - 1; y >= 0; y--) {
+            for (int x = 0; x < size; x++) {
+                Piece topPiece = getPieceAt(x, y);
+                if (topPiece == null) {
+                    System.out.print("E ");
+                } else {
+                    char pieceChar = ' ';
+                    switch (topPiece.getPieceType()) {
+                        case FLAT_STONE:
+                            pieceChar = 'F';
+                            break;
+                        case STANDING_STONE:
+                            pieceChar = 'S';
+                            break;
+                        case CAPSTONE:
+                            pieceChar = 'C';
+                            break;
+                    }
+                    System.out.print(pieceChar + " ");
+                }
+            }
+            System.out.println();
         }
     }
 
+    
     /**
      * Creates a deep copy of the board, including all pieces and their states.
+     * Maintains references to the original Player instances to ensure consistency.
      *
      * @return A new Board object that is a copy of the current board.
      */
     @SuppressWarnings("unchecked")
     public Board copy() {
         Board newBoard = new Board(this.size);
+        newBoard.setPlayers(this.players); // Reference the same players
+
+        // Copy the pieces without altering player references
         for (int x = 0; x < this.size; x++) {
             for (int y = 0; y < this.size; y++) {
                 List<Piece> originalStack = this.board[x][y];
                 List<Piece> newStack = new ArrayList<>();
                 for (Piece piece : originalStack) {
-                    // Assuming Piece has a proper copy constructor or clone method
+                    // Directly reference the same player
                     Piece newPiece = new Piece(piece.getPieceType(), piece.getOwner());
                     newStack.add(newPiece);
                 }
                 newBoard.board[x][y] = newStack;
             }
         }
+
         return newBoard;
     }
+
 
     /**
      * Checks if the game has ended based on the current board state.
@@ -335,8 +363,8 @@ public class Board {
      * @return True if the game has ended, false otherwise.
      */
     public boolean isGameOver() {
-        // Placeholder for game over logic
-        // Implement logic to determine if the game has ended
+        // TODO: Implement actual game over conditions
+        // Currently returns false as a placeholder
         return false;
     }
 
@@ -368,5 +396,48 @@ public class Board {
             }
             System.out.println();
         }
+    }
+
+    /**
+     * Overrides equals method to compare boards based on size and piece configurations.
+     *
+     * @param obj The object to compare.
+     * @return true if equal, false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Board)) return false;
+        Board other = (Board) obj;
+        if (this.size != other.size) return false;
+        for (int x = 0; x < this.size; x++) {
+            for (int y = 0; y < this.size; y++) {
+                List<Piece> thisStack = this.board[x][y];
+                List<Piece> otherStack = other.board[x][y];
+                if (thisStack.size() != otherStack.size()) return false;
+                for (int i = 0; i < thisStack.size(); i++) {
+                    Piece thisPiece = thisStack.get(i);
+                    Piece otherPiece = otherStack.get(i);
+                    if (!thisPiece.equals(otherPiece)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Overrides hashCode method consistent with equals.
+     *
+     * @return The hash code.
+     */
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(size);
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                result = 31 * result + board[x][y].hashCode();
+            }
+        }
+        return result;
     }
 }

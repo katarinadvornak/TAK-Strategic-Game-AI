@@ -72,6 +72,8 @@ public class MainMenuScreen implements Screen {
 
     
 
+    
+
     /**
      * Adds listeners to the Start Game and Exit buttons.
      */
@@ -109,10 +111,9 @@ public class MainMenuScreen implements Screen {
             @Override
             protected void result(Object object) {
                 if (object.equals("human")) {
-                    game.setScreen(new GameScreen(game)); // Start the GameScreen
+                    game.setScreen(new GameScreen(game, false)); // Start the GameScreen without AI
                 } else if (object.equals("ai")) {
-                    // Currently not implemented
-                    showNotImplementedDialog();
+                    game.setScreen(new GameScreen(game, true)); // Start the GameScreen with AI
                 }
             }
         };
@@ -121,6 +122,7 @@ public class MainMenuScreen implements Screen {
         dialog.button("Play against AI", "ai");
         dialog.show(stage);
     }
+
 
     /**
      * Displays a dialog indicating that the selected feature is not yet implemented.

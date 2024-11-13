@@ -91,9 +91,6 @@ public class GameInputHandler extends InputAdapter {
                     } catch (InvalidMoveException e) {
                         // Handle invalid move
                         gameScreen.showErrorDialog("Invalid Move: " + e.getMessage());
-                    } catch (GameOverException e) {
-                        // Handle game over
-                        gameScreen.showGameOverDialog(takGame.getWinner());
                     }
                 } else {
                     // Handle moving stacks

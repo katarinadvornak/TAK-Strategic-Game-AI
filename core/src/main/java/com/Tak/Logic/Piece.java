@@ -1,5 +1,7 @@
 package com.Tak.Logic;
 
+import java.util.Objects;
+
 /**
  * The Piece class represents a game piece in Tak.
  * It holds information about the piece type and its owner.
@@ -73,5 +75,30 @@ public class Piece {
      */
     public boolean canBePartOfRoad() {
         return this.pieceType == PieceType.FLAT_STONE || this.pieceType == PieceType.CAPSTONE;
+    }
+
+    /**
+     * Overrides equals method to compare Pieces based on type and owner.
+     *
+     * @param obj The object to compare.
+     * @return true if equal, false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Piece)) return false;
+        Piece other = (Piece) obj;
+        return this.pieceType == other.pieceType &&
+               Objects.equals(this.owner, other.owner);
+    }
+
+    /**
+     * Overrides hashCode method consistent with equals.
+     *
+     * @return The hash code.
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(pieceType, owner);
     }
 }

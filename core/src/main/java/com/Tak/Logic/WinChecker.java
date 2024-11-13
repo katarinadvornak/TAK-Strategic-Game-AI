@@ -1,7 +1,8 @@
+// File: core/src/main/java/com/Tak/Logic/WinChecker.java
 package com.Tak.Logic;
 
-import com.badlogic.gdx.Gdx;
-
+import java.util.Objects;
+import com.Tak.AI.RoadConnectivity;
 /**
  * The WinChecker class is responsible for determining if a player has won the game.
  * It checks for road wins and flat wins.
@@ -18,98 +19,30 @@ public class WinChecker {
      * @return true if the player has achieved a road win, false otherwise.
      */
     public boolean checkForRoadWin(Player player, Board board) {
-        int size = board.getSize();
-        boolean[][] visited;
-        // Check for horizontal road (left to right)
-        for (int y = 0; y < size; y++) {
-            visited = new boolean[size][size];
-            if (dfsRoad(player, board, 0, y, visited, true)) {
-                Gdx.app.log("WinChecker", "Horizontal road win detected for " + player.getColor());
-                return true;
-            }
-        }
-        // Check for vertical road (top to bottom)
-        for (int x = 0; x < size; x++) {
-            visited = new boolean[size][size];
-            if (dfsRoad(player, board, x, 0, visited, false)) {
-                Gdx.app.log("WinChecker", "Vertical road win detected for " + player.getColor());
-                return true;
-            }
-        }
-        return false;
+        RoadConnectivity roadChecker = new RoadConnectivity();
+        return roadChecker.checkForRoadWin(player, board);
     }
 
-
     /**
-     * Performs a depth-first search to find a continuous road.
+     * Determines the player with the most visible flat stones if the board is full.
      *
-     * @param player       The player.
-     * @param board        The game board.
-     * @param x            Current X coordinate.
-     * @param y            Current Y coordinate.
-     * @param visited      2D array to keep track of visited positions.
-     * @param isHorizontal true for horizontal road, false for vertical.
-     * @return true if a road is found, false otherwise.
+     * @param board The current game board.
+     * @return The player with the most flat stones, or null if it's a tie.
      */
-    private boolean dfsRoad(Player player, Board board, int x, int y, boolean[][] visited, boolean isHorizontal) {
-        if (!board.isWithinBounds(x, y)) {
-            return false;
-        }
-        if (visited[x][y]) {
-            return false;
-        }
-        Piece piece = board.getPieceAt(x, y);
-        if (piece == null || piece.getOwner() != player || !piece.canBePartOfRoad()) {
-            return false;
-        }
-        visited[x][y] = true;
-        int size = board.getSize();
-
-        // Check if we've reached the opposite side
-        if (isHorizontal && x == size - 1) {
-            return true;
-        }
-        if (!isHorizontal && y == size - 1) {
-            return true;
-        }
-
-        // Explore neighboring positions
-        int[][] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-        for (int[] dir : directions) {
-            int nx = x + dir[0];
-            int ny = y + dir[1];
-            if (dfsRoad(player, board, nx, ny, visited, isHorizontal)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    /**
-     * Checks whether a flat win has been achieved.
-     * A flat win occurs when the board is full and no road win has been achieved.
-     * The player with the most flat stones on top of stacks wins.
-     *
-     * @param game The current game instance.
-     * @return The player who won by flat count, or null if no flat win.
-     */
-    public Player checkForFlatWin(TakGame game) {
-        Board board = game.getBoard();
-        if (board.isBoardFull()) {
-            Player player1 = game.getPlayer1();
-            Player player2 = game.getPlayer2();
-            int player1FlatStones = countFlatStones(player1, board);
-            int player2FlatStones = countFlatStones(player2, board);
-            if (player1FlatStones > player2FlatStones) {
+    public Player getTopPlayer(Board board) {
+        if (board.isFull()) {
+            Player player1 = board.getPlayers().get(0);
+            Player player2 = board.getPlayers().get(1);
+            int player1Flats = countFlatStones(player1, board);
+            int player2Flats = countFlatStones(player2, board);
+            
+            if (player1Flats > player2Flats) {
                 return player1;
-            } else if (player2FlatStones > player1FlatStones) {
+            } else if (player2Flats > player1Flats) {
                 return player2;
-            } else {
-                return null;
             }
         }
-        return null;
+        return null; // Tie or board not full
     }
 
     /**

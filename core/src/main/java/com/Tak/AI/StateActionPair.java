@@ -1,6 +1,11 @@
+// File: core/src/main/java/com/Tak/AI/StateActionPair.java
 package com.Tak.AI;
 
-import com.Tak.Logic.*;
+import com.Tak.Logic.Action;
+import com.Tak.Logic.Board;
+import com.Tak.Logic.Piece;
+
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -8,63 +13,66 @@ import java.util.Objects;
  * used as a key in the Q-table for reinforcement learning.
  */
 public class StateActionPair {
-
-    private Board state;
-    private Move action;
-
+    
+    private final String stateHash;
+    private final Action action;
+    
     /**
      * Constructs a StateActionPair with the specified state and action.
      *
-     * @param state  The game state.
-     * @param action The action taken in that state.
+     * @param board  The game board state.
+     * @param action The action taken.
      */
-    public StateActionPair(Board state, Move action) {
-        // Initialize the state-action pair
-        this.state = state.copy();
-        this.action = action; // Assuming Move is immutable or acceptable to reference directly
+    public StateActionPair(Board board, Action action) {
+        this.stateHash = hashBoard(board);
+        this.action = action;
     }
-
+    
     /**
-     * Checks if this StateActionPair is equal to another object.
+     * Generates a unique hash for the board state.
      *
-     * @param obj The object to compare.
-     * @return True if equal, false otherwise.
+     * @param board The game board.
+     * @return A unique string representing the board state.
      */
+    private String hashBoard(Board board) {
+        StringBuilder sb = new StringBuilder();
+        for (int x = 0; x < board.getSize(); x++) {
+            for (int y = 0; y < board.getSize(); y++) {
+                List<Piece> stack = board.getBoardPosition(x, y);
+                if (stack.isEmpty()) {
+                    sb.append("E"); // Empty
+                } else {
+                    Piece topPiece = stack.get(stack.size() - 1);
+                    sb.append(topPiece.getPieceType().toString().charAt(0));
+                    sb.append(topPiece.getOwner().toString().charAt(0));
+                    sb.append(stack.size()); // Include stack height for better differentiation
+                }
+                sb.append(",");
+            }
+            sb.append(";");
+        }
+        return sb.toString();
+    }
+    
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (!(obj instanceof StateActionPair)) return false;
         StateActionPair other = (StateActionPair) obj;
-        return Objects.equals(state, other.state) && Objects.equals(action, other.action);
+        return Objects.equals(this.stateHash, other.stateHash) &&
+               Objects.equals(this.action, other.action);
     }
-
-    /**
-     * Returns a hash code for this StateActionPair.
-     *
-     * @return The hash code.
-     */
+    
     @Override
     public int hashCode() {
-        return Objects.hash(state, action);
+        return Objects.hash(stateHash, action);
     }
-
-    // Getters for state and action
-
-    /**
-     * Gets the state part of the StateActionPair.
-     *
-     * @return The game state.
-     */
-    public Board getState() {
-        return state;
-    }
-
-    /**
-     * Gets the action part of the StateActionPair.
-     *
-     * @return The action taken.
-     */
-    public Move getAction() {
+    
+    public Action getAction() {
         return action;
+    }
+    
+    public String getStateHash() {
+        return stateHash;
     }
 }

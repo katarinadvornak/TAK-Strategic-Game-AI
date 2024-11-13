@@ -1,403 +1,315 @@
+// File: core/src/main/java/com/Tak/Logic/TakGame.java
 package com.Tak.Logic;
 
+import com.Tak.AI.AIPlayer;
+import com.Tak.utils.Logger; // Ensure correct package name (Utils with uppercase 'U')
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import com.Tak.AI.AIPlayer;
 
 /**
- * The TakGame class manages the overall game flow.
- * It handles player turns, move execution, and checks for win conditions.
+ * The TakGame class manages the game state, including the board, players, move counts, and win conditions.
  */
 public class TakGame {
-
-    private Board board;              // The game board
-    private Player player1;           // Player 1 (Black)
-    private Player player2;           // Player 2 (White)
-    private Player currentPlayer;     // The player whose turn it is
-    private WinChecker winChecker;    // Utility to check win conditions
-    private boolean gameEnded;        // Flag to indicate if the game has ended
-    private Player winner;            // The winning player, if any
-    private int moveCount;            // To track the number of moves made
-
+    
+    private Board board;
+    private List<Player> players;
+    private int currentPlayerIndex;
+    private int moveCount;
+    private boolean isGameEnded;
+    private Player winner;
+    
     /**
-     * Constructor to initialize the game with the board and players.
+     * Constructs a TakGame with the specified board size.
      *
-     * @param boardSize The size of the board.
-     * @param useAI     Whether to use an AI player.
+     * @param boardSize       The size of the board (e.g., 5 for a 5x5 board).
+     * @param useAI           Whether to include AI players.
+     * @param aiPlayersCount  Number of AI players (0 for all human players, 1 for one AI player, 2 for AI vs AI).
      */
-    public TakGame(int boardSize, boolean useAI) {
-        this.board = new Board(boardSize);
-        int flatStones = calculateFlatStones(boardSize);
-        int capstones = calculateCapstones(boardSize);
-        int standingStones = calculateStandingStones(boardSize);
-
-        if (useAI) {
-            this.player1 = new HumanPlayer(Player.Color.BLACK, flatStones, standingStones, capstones);
-            this.player2 = new AIPlayer(Player.Color.WHITE, flatStones, standingStones, capstones, 3); // Example searchDepth = 3
+    public TakGame(int boardSize, boolean useAI, int aiPlayersCount) {
+        board = new Board(boardSize);
+        players = new ArrayList<>();
+        board.setPlayers(players); // Set the Board's players list
+        currentPlayerIndex = 0;
+        moveCount = 0;
+        isGameEnded = false;
+        winner = null;
+        initializePlayers(useAI, aiPlayersCount); // **Invoke players initialization**
+    }
+    
+    /**
+     * Initializes players based on whether AI is used and the number of AI players.
+     *
+     * @param useAI          Whether to include AI players.
+     * @param aiPlayersCount Number of AI players to include.
+     */
+    private void initializePlayers(boolean useAI, int aiPlayersCount) {
+        if (!useAI || aiPlayersCount == 0) {
+            // Add two HumanPlayers
+            Player player1 = new HumanPlayer(Player.Color.BLACK, 15, 6, 1); // Human Player BLACK
+            Player player2 = new HumanPlayer(Player.Color.WHITE, 15, 6, 1); // Human Player WHITE
+            player1.setOpponent(player2);
+            player2.setOpponent(player1);
+            players.add(player1);
+            players.add(player2);
+            Logger.log("TakGame", "Added two HumanPlayers: BLACK and WHITE.");
         } else {
-            this.player1 = new HumanPlayer(Player.Color.BLACK, flatStones, standingStones, capstones);
-            this.player2 = new HumanPlayer(Player.Color.WHITE, flatStones, standingStones, capstones);
+            // Add AIPlayers based on aiPlayersCount
+            if (aiPlayersCount == 1) {
+                Player player1 = new HumanPlayer(Player.Color.BLACK, 15, 6, 1); // Human Player BLACK
+                AIPlayer aiPlayer = new AIPlayer(Player.Color.WHITE, 15, 6, 1, 3, true, true); // AI Player WHITE
+                player1.setOpponent(aiPlayer);
+                aiPlayer.setOpponent(player1);
+                players.add(player1);
+                players.add(aiPlayer);
+                Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
+            } else if (aiPlayersCount == 2) {
+                AIPlayer aiPlayer1 = new AIPlayer(Player.Color.BLACK, 15, 6, 1, 3, true, true); // AI Player BLACK
+                AIPlayer aiPlayer2 = new AIPlayer(Player.Color.WHITE, 15, 6, 1, 3, true, true); // AI Player WHITE
+                aiPlayer1.setOpponent(aiPlayer2);
+                aiPlayer2.setOpponent(aiPlayer1);
+                players.add(aiPlayer1);
+                players.add(aiPlayer2);
+                Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
+            } else {
+                throw new IllegalArgumentException("aiPlayersCount must be 0, 1, or 2.");
+            }
         }
-        // Initialize currentPlayer to Player 1 (Black)
-        this.currentPlayer = player1;
+        
+        // Log the final players list
+        Logger.log("TakGame", "Final Players List:");
+        for (Player p : players) {
+            Logger.log("TakGame", p.getClass().getSimpleName() + " - Color: " + p.getColor());
+        }
+    }
+    
+    
+    /**
+     * Adds a player to the game.
+     *
+     * @param player The player to add.
+     */
+    public void addPlayer(Player player) {
+        // Ensure no duplicate players are added
+        if (!players.contains(player)) {
+            players.add(player);
+            // Update opponents if necessary
+            if (players.size() == 2) {
+                players.get(0).setOpponent(players.get(1));
+                players.get(1).setOpponent(players.get(0));
+                Logger.log("TakGame", "Set opponents for players.");
+            }
+        }
+    }
 
-        this.winChecker = new WinChecker();
-        this.gameEnded = false;
-        this.moveCount = 0;
+
+    /**
+     * Retrieves the opponent player.
+     *
+     * @return The opponent Player.
+     */
+    public Player getOpponentPlayer() {
+        return getCurrentPlayer().getOpponent();
     }
 
     /**
-     * Calculates the number of flat stones based on board size.
+     * Moves a stack of pieces on the board based on the specified direction and drop counts.
      *
-     * @param boardSize The size of the board.
-     * @return The number of flat stones.
+     * @param fromX        The starting X coordinate.
+     * @param fromY        The starting Y coordinate.
+     * @param direction    The direction to move.
+     * @param dropCounts   The number of pieces to drop at each step.
+     * @throws InvalidMoveException If the move is invalid.
+     * @throws GameOverException    If the game has already ended.
      */
-    private int calculateFlatStones(int boardSize) {
-        switch (boardSize) {
-            case 3:
-                return 10;
-            case 4:
-                return 15;
-            case 5:
-                return 21;
-            case 6:
-                return 30;
-            case 8:
-                return 50;
-            default:
-                return 21;
+    public void moveStack(int fromX, int fromY, Direction direction, int[] dropCounts) throws InvalidMoveException, GameOverException {
+        Player currentPlayer = getCurrentPlayer();
+        Logger.log("TakGame", currentPlayer.getColor() + " is moving stack from (" + fromX + ", " + fromY + ") " + direction + " with drop counts " + Arrays.toString(dropCounts));
+        int numberOfPieces = 0;
+        for (int count : dropCounts) {
+            numberOfPieces += count;
         }
-    }
+        if (numberOfPieces > board.getCarryLimit()) {
+            throw new InvalidMoveException("Cannot carry more than " + board.getCarryLimit() + " pieces.");
+        }
 
-    private int calculateStandingStones(int boardSize) {
-        switch (boardSize) {
-            case 3:
-                return 0; // Or appropriate value
-            case 4:
-                return 0; // Or appropriate value
-            case 5:
-                return 10; // Adjust based on game rules
-            case 6:
-                return 15;
-            case 8:
-                return 25;
-            default:
-                return 10;
+        List<Integer> dropCountsList = new ArrayList<>();
+        for (int count : dropCounts) {
+            dropCountsList.add(count);
         }
+
+        Move move = new Move(fromX, fromY, direction, numberOfPieces, dropCountsList);
+        move.execute(board);
+        Logger.log("TakGame", currentPlayer.getColor() + " moved stack from (" + fromX + ", " + fromY + ") " + direction);
+        // Update player's piece counts if pieces are placed
+        // This depends on how the game logic handles captures or piece transformations
+        
+        incrementMoveCount();
+        checkWinConditions();
+        switchPlayer();
     }
 
     /**
-     * Calculates the number of capstones based on board size.
+     * Returns the current player.
      *
-     * @param boardSize The size of the board.
-     * @return The number of capstones.
+     * @return The current Player.
      */
-    private int calculateCapstones(int boardSize) {
-        switch (boardSize) {
-            case 5:
-                return 1;
-            case 6:
-                return 1;
-            case 8:
-                return 2;
-            default:
-                return 0;
+    public Player getCurrentPlayer() {
+        if (players.isEmpty()) {
+            throw new IllegalStateException("Players list is empty. No current player available.");
         }
+        return players.get(currentPlayerIndex);
+    }
+    public void switchPlayer() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+        Player newPlayer = getCurrentPlayer();
+        Logger.log("TakGame", "Switched to player: " + newPlayer.getColor());
     }
 
+
+    public void placePiece(int x, int y, Piece.PieceType pieceType) throws InvalidMoveException {
+        Player currentPlayer = getCurrentPlayer();
+        Logger.log("TakGame", currentPlayer.getColor() + " is placing a " + pieceType + " at (" + x + ", " + y + ")");
+        Piece piece = new Piece(pieceType, currentPlayer);
+        board.placePiece(x, y, piece, currentPlayer);
+        currentPlayer.decrementPiece(pieceType);
+        Logger.log("TakGame", currentPlayer.getColor() + " placed a " + pieceType + " at (" + x + ", " + y + ")");
+        incrementMoveCount();
+        checkWinConditions();
+        switchPlayer();
+    }
+
+
+    /**
+     * Increments the move count.
+     */
+    public void incrementMoveCount() {
+        moveCount++;
+        Logger.log("TakGame", "Move count incremented to: " + moveCount);
+    }
+    
     /**
      * Returns the current move count.
      *
      * @return The move count.
      */
     public int getMoveCount() {
-        return this.moveCount;
+        return moveCount;
     }
-
+    
     /**
-     * Increments the move count.
-     */
-    public void incrementMoveCount() {
-        this.moveCount++;
-    }
-
-    /**
-     * Gets the winner of the game.
+     * Returns the game board.
      *
-     * @return The winning player, or null if no winner yet.
-     */
-    public Player getWinner() {
-        return winner;
-    }
-
-    /**
-     * Starts the game. Any initial setup can be done here.
-     */
-    public void startGame() {
-        // Initialization logic if needed
-    }
-
-    /**
-     * Places a piece on the board for the current player.
-     *
-     * @param x         The X coordinate.
-     * @param y         The Y coordinate.
-     * @param pieceType The type of piece to place.
-     * @throws GameOverException    If the game has ended.
-     * @throws InvalidMoveException If the move is invalid.
-     */
-    public void placePiece(int x, int y, Piece.PieceType pieceType) throws GameOverException, InvalidMoveException {
-        if (gameEnded) {
-            throw new GameOverException("Game has ended.");
-        }
-
-        Player pieceOwner = currentPlayer;
-
-        if (moveCount < 2) {
-            // For the first two moves, players place opponent's flat stones
-            if (pieceType != Piece.PieceType.FLAT_STONE) {
-                throw new InvalidMoveException("Only flat stones can be placed on the first two moves.");
-            }
-            // The piece owner is the opponent
-            pieceOwner = getOpponentPlayer();
-        }
-
-        if (pieceOwner.hasPiecesLeft(pieceType)) {
-            Piece piece = new Piece(pieceType, pieceOwner);
-            board.placePiece(x, y, piece, currentPlayer);
-            pieceOwner.decrementPiece(pieceType); // Decrement from the actual owner
-            incrementMoveCount();
-            checkWinConditions();
-            if (!gameEnded) {
-                switchPlayer();
-            }
-        } else {
-            throw new InvalidMoveException("No remaining pieces of this type.");
-        }
-    }
-
-    /**
-     * Gets the opponent player.
-     *
-     * @return The opponent player.
-     */
-    public Player getOpponentPlayer() {
-        return (currentPlayer == player1) ? player2 : player1;
-    }
-
-    /**
-     * Checks for win conditions after a move and updates scores accordingly.
-     */
-    public void checkWinConditions() {
-        if (winChecker.checkForRoadWin(currentPlayer, board)) {
-            System.out.println(currentPlayer.getColor() + " wins by road!");
-            winner = currentPlayer;
-            gameEnded = true;
-            currentPlayer.incrementScore(1);
-        } else {
-            Player flatWinPlayer = winChecker.checkForFlatWin(this);
-            if (flatWinPlayer != null) {
-                System.out.println(flatWinPlayer.getColor() + " wins by flat count!");
-                winner = flatWinPlayer;
-                gameEnded = true;
-                flatWinPlayer.incrementScore(1);
-            }
-        }
-    }
-
-    /**
-     * Switches the current player.
-     */
-    public void switchPlayer() {
-        currentPlayer = (currentPlayer == player1) ? player2 : player1;
-    }
-
-    /**
-     * Gets the current game board.
-     *
-     * @return The game board.
+     * @return The Board instance.
      */
     public Board getBoard() {
-        return this.board;
+        return board;
     }
-
+    
     /**
-     * Gets the current player.
-     *
-     * @return The current player.
+     * Checks for game end conditions and sets the winner if applicable.
      */
-    public Player getCurrentPlayer() {
-        return this.currentPlayer;
+    public void checkWinConditions() {
+        WinChecker winChecker = new WinChecker();
+        for (Player player : players) {
+            if (winChecker.checkForRoadWin(player, board)) {
+                isGameEnded = true;
+                winner = player;
+                Logger.log("TakGame", "Win condition met. Winner: " + player.getColor());
+                return;
+            }
+        }
+        
+        if (board.isFull()) {
+            Player topPlayer = winChecker.getTopPlayer(board);
+            if (topPlayer != null) {
+                isGameEnded = true;
+                winner = topPlayer;
+                Logger.log("TakGame", "Board is full. Winner: " + topPlayer.getColor());
+            } else {
+                isGameEnded = true;
+                winner = null; // Tie
+                Logger.log("TakGame", "Board is full. The game is a tie.");
+            }
+        } else {
+            Logger.log("TakGame", "No win conditions met yet.");
+        }
     }
-
+    
+    
     /**
-     * Gets Player 1 (Black).
-     *
-     * @return Player 1.
-     */
-    public Player getPlayer1() {
-        return this.player1;
-    }
-
-    /**
-     * Gets Player 2 (White).
-     *
-     * @return Player 2.
-     */
-    public Player getPlayer2() {
-        return this.player2;
-    }
-
-    /**
-     * Checks if the game has ended.
-     *
-     * @return true if the game has ended, false otherwise.
-     */
-    public boolean isGameEnded() {
-        return this.gameEnded;
-    }
-
-    /**
-     * Resets the game to its initial state.
-     * Optionally resets player scores if desired.
+     * Resets the game state.
      *
      * @param resetScores Whether to reset player scores.
      */
     public void resetGame(boolean resetScores) {
-        board.resetBoard();
-        currentPlayer = player1; // Start with Black as per Tak rules
-        gameEnded = false;
+        board.reset();
         moveCount = 0;
-        int flatStones = calculateFlatStones(board.getSize());
-        int standingStones = calculateStandingStones(board.getSize());
-        int capstones = calculateCapstones(board.getSize());
-        player1.resetPieces(flatStones, standingStones, capstones);
-        player2.resetPieces(flatStones, standingStones, capstones);
-        if (resetScores) {
-            player1.resetScore();
-            player2.resetScore();
+        isGameEnded = false;
+        winner = null;
+        currentPlayerIndex = 0;
+        
+        for (Player player : players) {
+            player.resetPieces(15, 6, 1); 
+            if (resetScores) {
+                player.resetScore();
+            }
         }
+        Logger.log("TakGame", "Game has been reset. Move count: " + moveCount + ", Game ended: " + isGameEnded);
     }
-
+    
     /**
-     * Moves a stack of pieces starting from a position in a specified direction,
-     * dropping a specified number of pieces along the way.
+     * Determines if the game has ended.
      *
-     * @param startX     The starting X coordinate.
-     * @param startY     The starting Y coordinate.
-     * @param direction  The direction to move.
-     * @param dropCounts An array specifying how many pieces to drop at each step.
-     * @throws InvalidMoveException If the move is invalid.
-     * @throws GameOverException    If the game has ended.
+     * @return True if the game has ended, false otherwise.
      */
-    public void moveStack(int startX, int startY, Direction direction, int[] dropCounts) throws InvalidMoveException, GameOverException {
-        System.out.println("moveStack called with startX: " + startX + ", startY: " + startY + ", direction: " + direction + ", dropCounts: " + Arrays.toString(dropCounts));
-
-        if (gameEnded) {
-            throw new GameOverException("Game has ended.");
-        }
-
-        List<Piece> stack = board.getBoardPosition(startX, startY);
-        if (stack.isEmpty()) {
-            throw new InvalidMoveException("No pieces to move at the selected position.");
-        }
-
-        Piece topPiece = stack.get(stack.size() - 1);
-        if (topPiece.getOwner() != currentPlayer) {
-            throw new InvalidMoveException("You can only move stacks where your piece is on top.");
-        }
-
-        int totalPiecesToMove = 0;
-        for (int count : dropCounts) {
-            if (count <= 0) {
-                throw new InvalidMoveException("Drop counts must be positive integers.");
-            }
-            totalPiecesToMove += count;
-        }
-
-        int maxCarryLimit = Math.min(5, stack.size()); // Max pieces that can be carried
-        if (totalPiecesToMove > maxCarryLimit) {
-            throw new InvalidMoveException("Cannot move that many pieces.");
-        }
-
-        // Calculate movement increments
-        int dx = 0, dy = 0;
-        switch (direction) {
-            case UP:    dy = 1;  break;
-            case DOWN:  dy = -1; break;
-            case LEFT:  dx = -1; break;
-            case RIGHT: dx = 1;  break;
-            default:
-                throw new InvalidMoveException("Invalid direction.");
-        }
-
-        int x = startX;
-        int y = startY;
-        List<Piece> movingPieces = new ArrayList<>(stack.subList(stack.size() - totalPiecesToMove, stack.size()));
-        stack.subList(stack.size() - totalPiecesToMove, stack.size()).clear();
-
-        for (int i = 0; i < dropCounts.length; i++) {
-            int dropCount = dropCounts[i];
-
-            x += dx;
-            y += dy;
-
-            if (!board.isValidPosition(x, y)) {
-                throw new InvalidMoveException("Move goes off the board.");
-            }
-
-            if (movingPieces.isEmpty()) {
-                throw new InvalidMoveException("No more pieces to drop.");
-            }
-
-            if (dropCount > movingPieces.size()) {
-                throw new InvalidMoveException("Not enough pieces to drop.");
-            }
-
-            List<Piece> destinationStack = board.getBoardPosition(x, y);
-
-            // Enforce max stack height
-            if (destinationStack.size() + dropCount > 5) {
-                throw new InvalidMoveException("Cannot exceed maximum stack height of 5.");
-            }
-
-            // Handle capstone crushing standing stones
-            Piece topDestinationPiece = destinationStack.isEmpty() ? null : destinationStack.get(destinationStack.size() - 1);
-
-            if (topDestinationPiece != null) {
-                if (topDestinationPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
-                    if (movingPieces.get(0).getPieceType() == Piece.PieceType.CAPSTONE && dropCount == 1) {
-                        // Capstone crushes the standing stone
-                        topDestinationPiece.setPieceType(Piece.PieceType.FLAT_STONE);
-                    } else {
-                        throw new InvalidMoveException("Cannot move onto a standing stone unless dropping a capstone.");
-                    }
-                } else if (topDestinationPiece.getPieceType() == Piece.PieceType.CAPSTONE) {
-                    throw new InvalidMoveException("Cannot move onto a capstone.");
-                }
-            }
-
-            // Drop pieces
-            List<Piece> piecesToDrop = new ArrayList<>(movingPieces.subList(0, dropCount));
-            destinationStack.addAll(piecesToDrop);
-            movingPieces.subList(0, dropCount).clear();
-
-            // If all pieces have been dropped, break out of the loop
-            if (movingPieces.isEmpty()) {
-                break;
-            }
-        }
-
-        if (!movingPieces.isEmpty()) {
-            throw new InvalidMoveException("All pieces must be dropped during the move.");
-        }
-
-        incrementMoveCount();
-        checkWinConditions();
-        if (!gameEnded) {
-            switchPlayer();
-        }
-        System.out.println("Move completed successfully.");
+    public boolean isGameEnded() {
+        return isGameEnded;
     }
+    
+    /**
+     * Returns the winner of the game.
+     *
+     * @return The winning Player, or null if it's a tie.
+     */
+    public Player getWinner() {
+        return winner;
+    }
+    
+    /**
+     * Returns Player1 (Black).
+     *
+     * @return Player1.
+     */
+    public Player getPlayer1() {
+        return players.get(0);
+    }
+    
+    /**
+     * Returns Player2 (White).
+     *
+     * @return Player2.
+     */
+    public Player getPlayer2() {
+        return players.get(1);
+    }
+    
+    /**
+     * Returns the list of players.
+     *
+     * @return The list of players.
+     */
+    public List<Player> getPlayers() {
+        return players;
+    }
+    
+    /**
+     * Checks if the board is full.
+     *
+     * @return True if the board is full, false otherwise.
+     */
+    public boolean isBoardFull() {
+        return board.isFull();
+    }
+    
 }
