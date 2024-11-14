@@ -1,7 +1,7 @@
 // File: core/src/main/java/com/Tak/Logic/models/TakGame.java
 package com.Tak.Logic.models;
 
-import com.Tak.AI.players.AIPlayer;
+import com.Tak.AI.players.QPlayer;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.players.HumanPlayer;
@@ -113,15 +113,15 @@ public class TakGame implements Serializable {
             // Add AIPlayers based on aiPlayersCount
             if (aiPlayersCount == 1) {
                 Player player1 = new HumanPlayer(Player.Color.BLACK, 15, 6, 1); // Human Player BLACK
-                AIPlayer aiPlayer = new AIPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
+                QPlayer aiPlayer = new QPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
                 player1.setOpponent(aiPlayer);
                 aiPlayer.setOpponent(player1);
                 players.add(player1);
                 players.add(aiPlayer);
                 Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
             } else if (aiPlayersCount == 2) {
-                AIPlayer aiPlayer1 = new AIPlayer(Player.Color.BLACK, 15, 6, 1, true); // AI Player BLACK
-                AIPlayer aiPlayer2 = new AIPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
+                QPlayer aiPlayer1 = new QPlayer(Player.Color.BLACK, 15, 6, 1, true); // AI Player BLACK
+                QPlayer aiPlayer2 = new QPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
                 aiPlayer1.setOpponent(aiPlayer2);
                 aiPlayer2.setOpponent(aiPlayer1);
                 players.add(aiPlayer1);
@@ -319,8 +319,8 @@ public class TakGame implements Serializable {
             player.resetPieces(15, 6, 1); // Standard Counts
             if (resetScores) {
                 player.resetScore();
-                if (player instanceof AIPlayer) {
-                    ((AIPlayer) player).resetAI();
+                if (player instanceof QPlayer) {
+                    ((QPlayer) player).resetAI();
                 }
             }
         }

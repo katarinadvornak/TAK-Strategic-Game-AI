@@ -5,7 +5,6 @@ import com.Tak.AI.actions.Move;
 import com.Tak.AI.actions.Placement;
 import com.Tak.AI.evaluation.EvaluationFunction;
 import com.Tak.AI.learning.QLearningAgent;
-import com.Tak.AI.search.MinimaxAlgorithm;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
@@ -14,22 +13,19 @@ import com.Tak.Logic.models.Piece.PieceType;
 import com.Tak.Logic.models.TakGame;
 import com.Tak.Logic.models.Player.Color;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 
 /**
- * Represents an AI-controlled player utilizing both Minimax and Q-Learning strategies.
+ * QPlayer represents an AI player that uses Q-learning for decision-making.
  */
-public class AIPlayer extends Player implements Serializable {
+public class QPlayer extends Player implements Serializable {
     private static final long serialVersionUID = 1L;
     private transient Scanner scanner;
     private QLearningAgent qAgent;
-    private MinimaxAlgorithm minimaxAlgorithm;
     private EvaluationFunction evalFunction;
     private boolean useReinforcementLearning;
     private String lastActionDescription;
@@ -42,7 +38,7 @@ public class AIPlayer extends Player implements Serializable {
     private int blockingsThisGame;
 
     /**
-     * Constructs an AIPlayer with specified parameters.
+     * Constructs a QPlayer with specified parameters.
      *
      * @param color                    The color of the player.
      * @param flatStones               Number of flat stones.
@@ -50,17 +46,14 @@ public class AIPlayer extends Player implements Serializable {
      * @param capstones                Number of capstones.
      * @param useReinforcementLearning Flag to use Q-Learning.
      */
-    public AIPlayer(Color color, int flatStones, int standingStones,
-                    int capstones, boolean useReinforcementLearning) {
+    public QPlayer(Color color, int flatStones, int standingStones,
+                  int capstones, boolean useReinforcementLearning) {
         super(color, flatStones, standingStones, capstones);
         this.useReinforcementLearning = useReinforcementLearning;
 
         if (useReinforcementLearning) {
             this.qAgent = QLearningAgent.getInstance();
             this.evalFunction = new EvaluationFunction(qAgent);
-            int maxDepth = 3;
-            this.minimaxAlgorithm = new MinimaxAlgorithm(evalFunction,
-                    maxDepth, this);
         }
 
         this.explorationRate = 1.0;
@@ -72,11 +65,11 @@ public class AIPlayer extends Player implements Serializable {
     }
 
     /**
-     * Executes the AI player's move using Q-Learning or Minimax based on configuration.
+     * Executes the AI player's move using Q-Learning.
      *
      * @param game The current game instance.
      * @throws InvalidMoveException If the move is invalid.
-     * @throws GameOverException If the game is over.
+     * @throws GameOverException    If the game is over.
      */
     @Override
     public void makeMove(TakGame game) throws InvalidMoveException, GameOverException {
@@ -139,7 +132,7 @@ public class AIPlayer extends Player implements Serializable {
      *
      * @param ois The ObjectInputStream from which the object is being deserialized.
      * @throws ClassNotFoundException If the class of a serialized object cannot be found.
-     * @throws IOException If an I/O error occurs.
+     * @throws IOException            If an I/O error occurs.
      */
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         ois.defaultReadObject();
@@ -192,17 +185,17 @@ public class AIPlayer extends Player implements Serializable {
     }
 
     /**
-     * Creates a copy of this AIPlayer.
+     * Creates a copy of this QPlayer.
      *
-     * @return A copy of this AIPlayer.
+     * @return A copy of this QPlayer.
      */
     @Override
     public Player copy() {
-        AIPlayer copy = new AIPlayer(this.getColor(),
-                this.getRemainingPieces(PieceType.FLAT_STONE),
-                this.getRemainingPieces(PieceType.STANDING_STONE),
-                this.getRemainingPieces(PieceType.CAPSTONE),
-                this.useReinforcementLearning);
+        QPlayer copy = new QPlayer(this.getColor(),
+                                   this.getRemainingPieces(PieceType.FLAT_STONE),
+                                   this.getRemainingPieces(PieceType.STANDING_STONE),
+                                   this.getRemainingPieces(PieceType.CAPSTONE),
+                                   this.useReinforcementLearning);
         copy.setScore(this.getScore());
         copy.explorationRate = this.explorationRate;
         copy.explorationDecay = this.explorationDecay;
@@ -211,24 +204,24 @@ public class AIPlayer extends Player implements Serializable {
     }
 
     /**
-     * Compares AIPlayers based on Player properties.
+     * Compares QPlayers based on Player properties.
      *
      * @param obj The object to compare.
      * @return true if the players are equal, false otherwise.
      */
     @Override
     public boolean equals(Object obj) {
-        return super.equals(obj) && obj instanceof AIPlayer;
+        return super.equals(obj) && obj instanceof QPlayer;
     }
 
     /**
-     * Computes the hash code for this AIPlayer.
+     * Computes the hash code for this QPlayer.
      *
-     * @return The hash code of this AIPlayer.
+     * @return The hash code of this QPlayer.
      */
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), "AIPlayer");
+        return Objects.hash(super.hashCode(), "QPlayer");
     }
 
     /**

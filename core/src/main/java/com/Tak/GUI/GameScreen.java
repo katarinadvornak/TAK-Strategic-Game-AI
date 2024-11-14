@@ -1,7 +1,7 @@
 // File: core/src/main/java/com/Tak/GUI/GameScreen.java
 package com.Tak.GUI;
 
-import com.Tak.AI.players.AIPlayer;
+import com.Tak.AI.players.QPlayer;
 import com.Tak.GUI.UIManager.DropCountsCallback;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
@@ -176,7 +176,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         uiManager.getStage().draw();
 
         // Handle AI move if it's AI's turn
-        if (useAI && takGame.getCurrentPlayer() instanceof AIPlayer && !takGame.isGameEnded()) {
+        if (useAI && takGame.getCurrentPlayer() instanceof QPlayer && !takGame.isGameEnded()) {
             handleAIMove();
         }
     }
@@ -195,7 +195,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             @Override
             public void run() {
                 try {
-                    AIPlayer ai = (AIPlayer) takGame.getCurrentPlayer();
+                    QPlayer ai = (QPlayer) takGame.getCurrentPlayer();
                     ai.makeMove(takGame);
 
                     // Update the rendering
@@ -216,7 +216,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
                 } finally {
                     // Re-enable input if it's a human player's turn
-                    if (!(takGame.getCurrentPlayer() instanceof AIPlayer)) {
+                    if (!(takGame.getCurrentPlayer() instanceof QPlayer)) {
                         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
                     }
                     isAIMoving = false;
@@ -380,8 +380,8 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     if (useAI) {
                         // If AI uses learning, reset its state
                         Player ai = takGame.getPlayer2();
-                        if (ai instanceof AIPlayer) {
-                            ((AIPlayer) ai).resetAI();
+                        if (ai instanceof QPlayer) {
+                            ((QPlayer) ai).resetAI();
                         }
                     }
                     updateAfterGameReset();
@@ -390,8 +390,8 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     if (useAI) {
                         // If AI uses learning, reset its state
                         Player ai = takGame.getPlayer2();
-                        if (ai instanceof AIPlayer) {
-                            ((AIPlayer) ai).resetAI();
+                        if (ai instanceof QPlayer) {
+                            ((QPlayer) ai).resetAI();
                         }
                     }
                     updateAfterGameReset();

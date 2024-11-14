@@ -1,6 +1,6 @@
 package com.Tak.AI.Test;
 
-import com.Tak.AI.players.AIPlayer;
+import com.Tak.AI.players.QPlayer;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Player;
@@ -20,8 +20,8 @@ public class AITest {
         int boardSize = 5;
 
         // Initialize AIPlayers with standard Tak piece counts
-        AIPlayer aiPlayer1 = new AIPlayer(Color.BLACK, 21, 0, 1, true);
-        AIPlayer aiPlayer2 = new AIPlayer(Color.WHITE, 21, 0, 1, true);
+        QPlayer aiPlayer1 = new QPlayer(Color.BLACK, 21, 0, 1, true);
+        QPlayer aiPlayer2 = new QPlayer(Color.WHITE, 21, 0, 1, true);
 
         List<Player> players = new ArrayList<>();
         players.add(aiPlayer1);
