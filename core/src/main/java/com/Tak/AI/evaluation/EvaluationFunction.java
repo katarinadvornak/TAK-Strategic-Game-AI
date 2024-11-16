@@ -59,6 +59,7 @@ public class EvaluationFunction implements Serializable {
         String stateHash = generateStateHashSymmetrically(board, player);
 
         if (evaluationCache.containsKey(stateHash)) {
+            
             return evaluationCache.get(stateHash);
         }
         if (roadChecker.checkForRoadWin(player, board)) {
