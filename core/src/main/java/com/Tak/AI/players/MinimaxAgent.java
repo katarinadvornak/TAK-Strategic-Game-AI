@@ -2,6 +2,7 @@ package com.Tak.AI.players;
 
 import com.Tak.AI.actions.Action;
 import com.Tak.AI.evaluation.EvaluationFunction;
+import com.Tak.AI.search.MiniMaxAlgorithm2;
 import com.Tak.AI.search.MinimaxAlgorithm;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
@@ -20,7 +21,7 @@ import java.util.Objects;
  */
 public class MinimaxAgent extends Player implements Serializable {
     private static final long serialVersionUID = 1L;
-    private MinimaxAlgorithm minimaxAlgorithm;
+    private MiniMaxAlgorithm2 minimaxAlgorithm;
     private EvaluationFunction evaluationFunction;
     private int maxDepth;
 
@@ -38,7 +39,7 @@ public class MinimaxAgent extends Player implements Serializable {
         super(color, flatStones, standingStones, capstones);
         this.evaluationFunction = new EvaluationFunction();
         this.maxDepth = maxDepth;
-        this.minimaxAlgorithm = new MinimaxAlgorithm(evaluationFunction, maxDepth, this);
+        this.minimaxAlgorithm = new MiniMaxAlgorithm2(evaluationFunction, maxDepth, this);
     }
 
     /**

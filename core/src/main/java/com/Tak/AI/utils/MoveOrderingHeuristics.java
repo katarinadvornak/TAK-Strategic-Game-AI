@@ -5,6 +5,7 @@ import com.Tak.AI.evaluation.EvaluationFunction;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Player;
+import com.Tak.Logic.utils.Logger;
 import com.Tak.Logic.models.Piece.PieceType;
 import java.util.Comparator;
 import java.util.List;
@@ -22,9 +23,31 @@ public class MoveOrderingHeuristics {
      * @param player       The current player.
      * @param evalFunction The evaluation function to assess move quality.
      */
-    public static void orderMoves(List<Action> moves, Board board, Player player, EvaluationFunction evalFunction) {
-        moves.sort(Comparator.comparingDouble((Action a) -> evaluateAction(a, board, player, evalFunction)).reversed());
+    
+     public static void orderMoves(List<Action> moves, Board board, Player player, EvaluationFunction evalFunction) {
+        try {
+            // Sort the moves by the evaluated score in descending order, handle NaN safely, and keep original order as a tiebreaker
+            moves.sort(Comparator
+                .comparingDouble((Action a) -> {
+                    double score = evaluateAction(a, board, player, evalFunction);
+                    return Double.isNaN(score) ? Double.NEGATIVE_INFINITY : score; // Treat NaN as lowest value
+                })
+                .reversed()
+                .thenComparingInt(moves::indexOf)); // Maintain original order for ties
+    
+            // Debug logging for sorted order
+            Logger.debug("MoveOrdering", "Order of moves after sorting:");
+            for (Action action : moves) {
+                Logger.debug("MoveOrdering", "Action: " + action + " | Score: " +
+                    evaluateAction(action, board, player, evalFunction));
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Optional, for more detailed error trace
+        }
     }
+    
+
+
 
     /**
      * Evaluates the desirability of an action based on various game-specific heuristics.

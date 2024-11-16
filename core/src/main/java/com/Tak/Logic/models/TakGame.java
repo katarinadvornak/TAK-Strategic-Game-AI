@@ -423,4 +423,26 @@ public class TakGame implements Serializable {
         winChecker = new WinChecker();
         gameStateManager = new GameStateManager(board, players);
     }
+
+    public void logFinalBoardState() {
+        StringBuilder boardState = new StringBuilder();
+        boardState.append("Final Board State:\n");
+
+        for (int row = 0; row < board.getSize(); row++) {
+            for (int col = 0; col < board.getSize(); col++) {
+                Piece piece = board.getPieceAt(row, col);
+                if (piece != null) {
+                    boardState.append(piece.toString()).append(" ");
+                } else {
+                    boardState.append(". ");
+                }
+            }
+            boardState.append("\n");
+        }
+
+        Logger.log("Game", boardState.toString());
+    }
+
+    
+    
 }

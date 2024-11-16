@@ -448,4 +448,25 @@ public class Board {
         copiedBoard = copiedBoard.rotateClockwise(times);
         return copiedBoard;
     }
+
+    public void printBoard() {
+        // Loop through each row and column of the board
+    for (int y = 0; y < size; y++) {
+        StringBuilder row = new StringBuilder();
+        
+        for (int x = 0; x < size; x++) {
+            PieceStack stack = board[x][y];
+            // Print the top piece or an empty space if the stack is empty
+            if (stack.isEmpty()) {
+                row.append("[ ] "); // Empty space for an empty stack
+            } else {
+                Piece topPiece = stack.getTopPiece();
+                // Use the toString() method from the Piece class to show type and ownership
+                row.append("[").append(topPiece.toString()).append("] ");
+            }
+        }
+        // Print the row for each y-coordinate
+        System.out.println(row.toString());
+    }
+    }
 }

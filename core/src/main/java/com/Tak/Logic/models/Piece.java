@@ -116,4 +116,24 @@ public class Piece implements Serializable {
     public Piece copy(Player ownerCopy) {
         return new Piece(this.pieceType, ownerCopy);
     }   
+
+    @Override
+    public String toString() {
+        String typeSymbol;
+        switch (this.pieceType) {
+            case FLAT_STONE:
+                typeSymbol = "F"; // Represent flat stone as 'F'
+                break;
+            case STANDING_STONE:
+                typeSymbol = "S"; // Represent standing stone as 'S'
+                break;
+            case CAPSTONE:
+                typeSymbol = "C"; // Represent capstone as 'C'
+                break;
+            default:
+                typeSymbol = "?"; // Unknown type
+                break;
+        }
+        return owner != null ? typeSymbol + "(" + owner.getColor() + ")" : typeSymbol;
+    }
 }

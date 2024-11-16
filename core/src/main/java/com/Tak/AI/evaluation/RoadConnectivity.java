@@ -25,7 +25,7 @@ public class RoadConnectivity implements Serializable {
     public boolean checkForRoadWin(Player player, Board board) {
         int size = board.getSize();
 
-        Logger.log("RoadConnectivity", "Checking road win for " + player.getColor());
+        //Logger.log("RoadConnectivity", "Checking road win for " + player.getColor());
 
         // Check Left-Right connection
         boolean leftRightWin = false;
