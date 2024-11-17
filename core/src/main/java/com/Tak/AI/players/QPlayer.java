@@ -53,7 +53,7 @@ public class QPlayer extends Player implements Serializable {
 
         if (useReinforcementLearning) {
             this.qAgent = QLearningAgent.getInstance();
-            this.evalFunction = new EvaluationFunction(qAgent);
+            this.evalFunction = new EvaluationFunction();
         }
 
         this.explorationRate = 1.0;

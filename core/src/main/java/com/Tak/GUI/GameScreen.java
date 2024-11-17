@@ -1,7 +1,8 @@
 // File: core/src/main/java/com/Tak/GUI/GameScreen.java
 package com.Tak.GUI;
 
-import com.Tak.AI.players.QPlayer;
+import com.Tak.AI.learning.QLearningAgent;
+import com.Tak.AI.players.MinimaxAgent;
 import com.Tak.GUI.UIManager.DropCountsCallback;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
@@ -22,6 +23,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The GameScreen class handles the main game screen, coordinating between the renderer, UI, and input handler.
@@ -61,8 +65,20 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
      */
     public void create() {
         // Initialize the game logic
-        int aiPlayersCount = useAI ? 1 : 0;
-        takGame = new TakGame(boardSize, useAI, aiPlayersCount);
+        Player humanPlayer = new com.Tak.Logic.players.HumanPlayer(Player.Color.WHITE, 21, 1, 1); // Adjust piece counts as needed
+        Player aiPlayer;
+        aiPlayer = new MinimaxAgent(Player.Color.BLACK, 21, 1, 1, 3); // Adjust piece counts and depth as needed
+        
+
+        // Set opponents
+        humanPlayer.setOpponent(aiPlayer);
+        aiPlayer.setOpponent(humanPlayer);
+
+        List<Player> players = new ArrayList<>();
+        players.add(humanPlayer);
+        players.add(aiPlayer);
+
+        takGame = new TakGame(boardSize, players);
 
         // Set up the camera
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -176,7 +192,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         uiManager.getStage().draw();
 
         // Handle AI move if it's AI's turn
-        if (useAI && takGame.getCurrentPlayer() instanceof QPlayer && !takGame.isGameEnded()) {
+        if (useAI && takGame.getCurrentPlayer() instanceof MinimaxAgent && !takGame.isGameEnded()) {
             handleAIMove();
         }
     }
@@ -195,7 +211,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             @Override
             public void run() {
                 try {
-                    QPlayer ai = (QPlayer) takGame.getCurrentPlayer();
+                    MinimaxAgent ai = (MinimaxAgent) takGame.getCurrentPlayer();
                     ai.makeMove(takGame);
 
                     // Update the rendering
@@ -216,7 +232,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
                 } finally {
                     // Re-enable input if it's a human player's turn
-                    if (!(takGame.getCurrentPlayer() instanceof QPlayer)) {
+                    if (!(takGame.getCurrentPlayer() instanceof MinimaxAgent)) {
                         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
                     }
                     isAIMoving = false;
@@ -311,13 +327,11 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             // Deselect if already selected
             selectedPieceType = null;
             renderer.removeHoverOutline();
-            // pieceSelected = false; // Managed via isPieceSelected()
             Gdx.app.log("GameScreen", "Deselected " + pieceType);
         } else {
             // Select the new piece type
             selectedPieceType = pieceType;
             renderer.removeHoverOutline();
-            // pieceSelected = true; // Managed via isPieceSelected()
             Gdx.app.log("GameScreen", "Selected " + pieceType);
         }
     }
@@ -332,7 +346,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         updateCurrentPlayerLabel();
         updateHotbarColors();
         selectedPieceType = null;
-        // pieceSelected = false; // Managed via isPieceSelected()
         renderer.removeHoverOutline();
     }
 
@@ -377,23 +390,9 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             protected void result(Object object) {
                 if (object.equals("newGame")) {
                     takGame.resetGame(true); // Reset both board and scores
-                    if (useAI) {
-                        // If AI uses learning, reset its state
-                        Player ai = takGame.getPlayer2();
-                        if (ai instanceof QPlayer) {
-                            ((QPlayer) ai).resetAI();
-                        }
-                    }
                     updateAfterGameReset();
                 } else if (object.equals("continue")) {
                     takGame.resetGame(false); // Reset board but keep scores
-                    if (useAI) {
-                        // If AI uses learning, reset its state
-                        Player ai = takGame.getPlayer2();
-                        if (ai instanceof QPlayer) {
-                            ((QPlayer) ai).resetAI();
-                        }
-                    }
                     updateAfterGameReset();
                 } else if (object.equals("exit")) {
                     Gdx.app.exit();
@@ -420,7 +419,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         dialog.show(uiManager.getStage());
     }
 
-
     @Override
     public void addMoveToList(String moveDescription) {
         uiManager.addMoveToList(moveDescription);
@@ -435,7 +433,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
     public void showDropCountsPrompt(int sourceX, int sourceY, Direction direction, DropCountsCallback callback) {
         uiManager.promptForDropCounts(sourceX, sourceY, direction, callback);
     }
-
 
     @Override
     public PieceType getSelectedPieceType() {
@@ -453,5 +450,4 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
     public boolean isPieceSelected() {
         return selectedPieceType != null;
     }
-
 }
