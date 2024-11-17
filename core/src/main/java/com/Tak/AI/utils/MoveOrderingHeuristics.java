@@ -6,7 +6,7 @@ import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Player;
 import com.Tak.Logic.utils.Logger;
-import com.Tak.Logic.models.Piece.PieceType;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -23,10 +23,9 @@ public class MoveOrderingHeuristics {
      * @param player       The current player.
      * @param evalFunction The evaluation function to assess move quality.
      */
-    
-     public static void orderMoves(List<Action> moves, Board board, Player player, EvaluationFunction evalFunction) {
+    public static void orderMoves(List<Action> moves, Board board, Player player, EvaluationFunction evalFunction) {
         try {
-            // Sort the moves by the evaluated score in descending order, handle NaN safely, and keep original order as a tiebreaker
+            // Sort the moves by the evaluated score in descending order
             moves.sort(Comparator
                 .comparingDouble((Action a) -> {
                     double score = evaluateAction(a, board, player, evalFunction);
@@ -34,7 +33,7 @@ public class MoveOrderingHeuristics {
                 })
                 .reversed()
                 .thenComparingInt(moves::indexOf)); // Maintain original order for ties
-    
+
             // Debug logging for sorted order
             Logger.debug("MoveOrdering", "Order of moves after sorting:");
             for (Action action : moves) {
@@ -42,12 +41,10 @@ public class MoveOrderingHeuristics {
                     evaluateAction(action, board, player, evalFunction));
             }
         } catch (Exception e) {
-            e.printStackTrace(); // Optional, for more detailed error trace
+            Logger.log("MoveOrdering", "Exception during move ordering: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-    
-
-
 
     /**
      * Evaluates the desirability of an action based on various game-specific heuristics.
@@ -65,27 +62,12 @@ public class MoveOrderingHeuristics {
             action.execute(hypotheticalBoard);
             score = evalFunc.evaluate(hypotheticalBoard, player);
 
-            if (action instanceof com.Tak.AI.actions.Move) {
-                com.Tak.AI.actions.Move move = (com.Tak.AI.actions.Move) action;
-                score += move.getDropCounts().stream().mapToInt(Integer::intValue).sum() * 0.1;
-            } else if (action instanceof com.Tak.AI.actions.Placement) {
-                com.Tak.AI.actions.Placement placement = (com.Tak.AI.actions.Placement) action;
-                int center = board.getSize() / 2;
-                int distance = Math.abs(placement.getX() - center) + Math.abs(placement.getY() - center);
-                score += (board.getSize() - distance) * 0.5;
-            }
-
-            if (evalFunc.isWinningMove(score, player)) {
-                score += 1000.0;
-            }
-
-            if (evalFunc.isBlockingMove(score, player, hypotheticalBoard)) {
-                score += 500.0;
-            }
-
             if (Double.isNaN(score)) {
-                score = Double.NEGATIVE_INFINITY;
+                score = 0.0; // Default to neutral score if NaN
             }
+
+            // Additional heuristics can be added here if necessary
+
         } catch (InvalidMoveException e) {
             score = Double.NEGATIVE_INFINITY;
         }

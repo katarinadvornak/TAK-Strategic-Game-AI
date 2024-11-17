@@ -17,7 +17,7 @@ public class MoveValidator {
         this.board = board;
         this.currentPlayer = currentPlayer;
     }
-
+    
     /**
      * Validates a move.
      *

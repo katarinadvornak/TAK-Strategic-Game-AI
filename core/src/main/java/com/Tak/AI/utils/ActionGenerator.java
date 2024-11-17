@@ -111,17 +111,27 @@ public class ActionGenerator {
                         for (Direction direction : Direction.values()) {
                             List<List<Integer>> dropSequences = generateDropSequences(numPieces);
                             for (List<Integer> drops : dropSequences) {
-                                if (isValidMove(board, x, y, direction, drops)) {
-                                    StringBuilder actionBuilder = new StringBuilder();
-                                    actionBuilder.append("MOVE ")
-                                             .append(x).append(" ")
-                                             .append(y).append(" ")
-                                             .append(direction.name()).append(" ")
-                                             .append(numPieces);
-                                    for (int drop : drops) {
-                                        actionBuilder.append(" ").append(drop);
-                                    }
-                                    moveActions.add(actionBuilder.toString());
+                                StringBuilder actionBuilder = new StringBuilder();
+                                actionBuilder.append("MOVE ")
+                                            .append(x).append(" ")
+                                            .append(y).append(" ")
+                                            .append(direction.name()).append(" ")
+                                            .append(numPieces);
+                                for (int drop : drops) {
+                                    actionBuilder.append(" ").append(drop);
+                                }
+                                String actionStr = actionBuilder.toString();
+
+                                // Attempt to execute the move on a copy of the board
+                                try {
+                                    Action action = Action.fromString(actionStr, player.getColor());
+                                    Board boardCopy = board.copy();
+                                    action.execute(boardCopy);
+                                    // Move is valid; add to the list
+                                    moveActions.add(actionStr);
+                                } catch (InvalidMoveException e) {
+                                    // Move is invalid; do not add to the list
+                                    continue;
                                 }
                             }
                         }

@@ -56,28 +56,32 @@ public class MiniMaxAlgorithm2 implements Serializable {
         Action bestAction = null;
         double bestValue = Double.NEGATIVE_INFINITY;
         startTime = System.currentTimeMillis();
-
+    
         Logger.log("MinimaxAlgorithm", "Starting search from the root (depth 0)");
-
+    
         // Generate all possible moves from the current state at depth 0
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, player);
         MoveOrderingHeuristics.orderMoves(possibleActions, board, player, evalFunction);
-
+    
+        // Initialize variables to track time limit and best move
+        boolean timeLimitExceeded = false;
+    
         for (Action action : possibleActions) {
             if (System.currentTimeMillis() - startTime > timeLimitMillis) {
                 Logger.log("MinimaxAlgorithm", "Time limit exceeded before evaluating all moves at depth 0");
+                timeLimitExceeded = true;
                 break;
             }
-
+    
             Board boardAfterAction = board.copy();
             try {
                 action.execute(boardAfterAction);
                 double moveValue = minimax(boardAfterAction, maxDepth - 1, false, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, player, currentMoveCount + 1);
-
+    
                 Logger.log("MinimaxAlgorithm", "Depth 0 | Evaluated move: " + action + " | Score: " + moveValue);
-
-                if (moveValue > bestValue) {
+    
+                if (moveValue > bestValue || bestAction == null) {
                     bestValue = moveValue;
                     bestAction = action;
                 }
@@ -85,14 +89,25 @@ public class MiniMaxAlgorithm2 implements Serializable {
                 Logger.log("MinimaxAlgorithm", "Invalid move encountered at depth 0: " + action);
                 continue;
             } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
+                Logger.log("MinimaxAlgorithm", "Time limit exceeded during minimax.");
+                timeLimitExceeded = true;
+                break;
+            }
         }
-
+    
+        if (bestAction == null) {
+            // If no best action was found, select a fallback move
+            Logger.log("MinimaxAlgorithm", "No valid moves found within time limit. Selecting a random move.");
+            if (!possibleActions.isEmpty()) {
+                bestAction = possibleActions.get(0); // Choose the first available move
+            } else {
+                throw new IllegalStateException("No valid moves available.");
+            }
+        }
+    
         Logger.log("MinimaxAlgorithm", "Final best move at depth 0: " + bestAction + " | Score: " + bestValue);
         return bestAction;
-    }
+    }    
 
     /**
      * The core Minimax recursive function with Alpha-Beta Pruning.

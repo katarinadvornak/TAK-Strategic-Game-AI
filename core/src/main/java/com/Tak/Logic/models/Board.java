@@ -132,23 +132,15 @@ public class Board {
         if (!isWithinBounds(x, y)) {
             throw new InvalidMoveException("Board position out of bounds.");
         }
-
+    
         PieceStack stack = board[x][y];
         if (stack.isEmpty()) {
             stack.addPiece(piece);
-            //Logger.log("Board", piece.getOwner().getColor() + " placed " + piece.getPieceType() + " at (" + x + ", " + y + ")");
         } else {
-            Piece topPiece = stack.getTopPiece();
-            // Allow stacking if the top piece belongs to the same player and is a flat stone or capstone
-            if (topPiece.getOwner().equals(piece.getOwner()) &&
-                (topPiece.getPieceType() == Piece.PieceType.FLAT_STONE || topPiece.getPieceType() == Piece.PieceType.CAPSTONE)) {
-                stack.addPiece(piece);
-                //Logger.log("Board", piece.getOwner().getColor() + " stacked " + piece.getPieceType() + " on top of existing stack at (" + x + ", " + y + ")");
-            } else {
-                throw new InvalidMoveException("Cannot place " + piece.getPieceType() + " on top of " + topPiece.getPieceType() + " at (" + x + ", " + y + ").");
-            }
+            throw new InvalidMoveException("Cannot place " + piece.getPieceType() + " on occupied cell at (" + x + ", " + y + ").");
         }
     }
+    
 
     /**
      * Removes a number of pieces from the top of the stack at the given position.
@@ -423,20 +415,13 @@ public class Board {
      * @return True if a piece can be placed, false otherwise.
      */
     public boolean canPlacePiece(int x, int y) {
-        if (!isWithinBounds(x, y)) {
-            return false;
-        }
-        PieceStack stack = board[x][y];
-        if (stack.isEmpty()) {
-            return true; // Can always place on an empty square
-        }
-        Piece topPiece = stack.getTopPiece();
-        // Can place on top if the top piece belongs to the same player and is a flat stone or capstone
-        // Or if the piece to be placed is a capstone (which can be placed on top of any stack, but handled in placePiece)
-        return topPiece.getOwner().equals(stack.getOwner()) &&
-               (topPiece.getPieceType() == Piece.PieceType.FLAT_STONE || topPiece.getPieceType() == Piece.PieceType.CAPSTONE);
+        return isWithinBounds(x, y) && isCellEmpty(x, y);
     }
-
+    
+    public boolean isCellEmpty(int x, int y) {
+        return board[x][y].isEmpty();
+    }
+    
     /**
      * Creates a deep copy of the current Board and rotates it clockwise by specified times.
      *
