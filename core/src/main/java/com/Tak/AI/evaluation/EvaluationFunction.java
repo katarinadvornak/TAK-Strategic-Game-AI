@@ -13,8 +13,8 @@ import java.util.Map;
 
 /**
  * The EvaluationFunction class evaluates the game board from the AI's perspective.
- * It assigns scores based on various strategic factors, focusing on blocking the opponent
- * and progressing the AI's own road-building efforts.
+ * It assigns scores based on various strategic factors, adjusting its strategy
+ * dynamically based on whether the AI is ahead or behind.
  */
 public class EvaluationFunction implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -63,7 +63,8 @@ public class EvaluationFunction implements Serializable {
     }
 
     /**
-     * Heuristic evaluation function focusing on blocking the opponent and progressing the AI's own road.
+     * Heuristic evaluation function that adjusts weights dynamically based on whether
+     * the AI is ahead or behind.
      *
      * @param board  The current game board.
      * @param player The player (AI) for whom the evaluation is being done.
@@ -72,8 +73,8 @@ public class EvaluationFunction implements Serializable {
     private double heuristicEvaluation(Board board, Player player) {
         double score = 0.0;
 
-        // Immediate Threat Detection (Very High Priority)
-        boolean opponentThreat = roadChecker.isOpponentCloseToWinning(board, player.getOpponent());
+        // Immediate Threat Detection
+        boolean opponentThreat = roadChecker.isPlayerCloseToWinning(board, player.getOpponent());
         if (opponentThreat) {
             score -= 1000.0; // Large penalty to prioritize blocking
         }
@@ -84,116 +85,283 @@ public class EvaluationFunction implements Serializable {
             score += 1000.0; // Large reward to prioritize winning
         }
 
-        // Road Potential Difference (High Priority)
+        // Base evaluation before dynamic adjustments
+        double baseScore = score;
+
+        // Road Potential Difference
         int playerRoadPotential = roadChecker.calculateRoadPotential(board, player);
         int opponentRoadPotential = roadChecker.calculateRoadPotential(board, player.getOpponent());
-        score += (playerRoadPotential - opponentRoadPotential) * 100.0;
+        double roadPotentialScore = (playerRoadPotential - opponentRoadPotential) * 100.0;
 
-        // Pattern Recognition (Medium Priority)
-        double patternScore = analyzePatterns(board, player);
-        score += patternScore * 50.0;
+        // Stacking Mechanics
+        double stackingScore = evaluateStacking(board, player) * 50.0;
 
-        // Flat Stones Difference (Low Priority)
+        // Blocking Potential
+        double blockingScore = evaluateBlockingPotential(board, player) * 50.0;
+
+        // Capstone Utilization
+        double capstoneScore = evaluateCapstoneUtilization(board, player) * 30.0;
+
+        // Flat Stones Difference
         int flatStoneDifference = countFlatStones(board, player) - countFlatStones(board, player.getOpponent());
-        score += flatStoneDifference * 10.0;
+        double flatStoneScore = flatStoneDifference * 10.0;
 
-        // Capstones Remaining (Low Priority)
-        int capstoneDifference = player.getRemainingPieces(Piece.PieceType.CAPSTONE)
-                - player.getOpponent().getRemainingPieces(Piece.PieceType.CAPSTONE);
-        score += capstoneDifference * 20.0;
+        // Total current evaluation
+        double currentEvaluation = baseScore + roadPotentialScore + stackingScore + blockingScore + capstoneScore + flatStoneScore;
+
+        // Dynamic weight adjustments based on current evaluation
+        if (currentEvaluation < 0) {
+            // AI is behind, adopt defensive strategy
+            blockingScore *= 1.5; // Increase blocking priority
+            roadPotentialScore *= 0.8; // Decrease own road building priority
+            stackingScore *= 1.0; // Keep stacking priority
+        } else {
+            // AI is ahead, adopt offensive strategy
+            roadPotentialScore *= 1.2; // Increase own road building priority
+            blockingScore *= 0.8; // Decrease blocking priority
+            stackingScore *= 1.0; // Keep stacking priority
+        }
+
+        // Recalculate total score with adjusted weights
+        score = baseScore + roadPotentialScore + stackingScore + blockingScore + capstoneScore + flatStoneScore;
 
         return score;
     }
 
     /**
-     * Analyzes the board for patterns that could lead to a win or threat.
+     * Evaluates stacking mechanics to assess control over stacks and mobility.
      *
-     * @param board  The current game board.
-     * @param player The player to analyze patterns for.
-     * @return A score representing the pattern analysis.
+     * @param board  The game board.
+     * @param player The player.
+     * @return A score representing stacking benefits.
      */
-    private double analyzePatterns(Board board, Player player) {
-        double bestPatternScore = 0.0;
+    private double evaluateStacking(Board board, Player player) {
+        double stackingScore = 0.0;
         int size = board.getSize();
 
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
-                // Check horizontal and vertical lines through (x, y)
-                double patternScore = evaluateLinePatterns(board, player, x, y);
-                if (patternScore > bestPatternScore) {
-                    bestPatternScore = patternScore;
+                PieceStack stack = board.getBoardStack(x, y);
+                if (!stack.isEmpty()) {
+                    // Determine who controls the stack (owner of the top piece)
+                    Player stackOwner = stack.getTopPiece().getOwner();
+                    if (stackOwner.equals(player)) {
+                        stackingScore += stack.size() * 2; // Reward for larger stacks
+                        // Additional bonus if the stack can move towards completing a road
+                        if (canMoveStackTowardsWin(board, x, y, player)) {
+                            stackingScore += 5.0;
+                        }
+                    } else if (stackOwner.equals(player.getOpponent())) {
+                        stackingScore -= stack.size(); // Penalty if opponent controls larger stacks
+                    }
                 }
             }
         }
-
-        return bestPatternScore;
+        return stackingScore;
     }
 
     /**
-     * Evaluates line patterns (rows and columns) passing through a given position.
+     * Checks if the stack at (x, y) can be moved towards completing a road.
+     *
+     * @param board  The game board.
+     * @param x      The X coordinate.
+     * @param y      The Y coordinate.
+     * @param player The player.
+     * @return True if the stack can be moved towards a road completion, false otherwise.
+     */
+    private boolean canMoveStackTowardsWin(Board board, int x, int y, Player player) {
+        // Determine the target direction based on player's color
+        Direction targetDirection = getPlayerRoadDirection(player);
+        if (targetDirection == null) {
+            return false; // Undefined direction
+        }
+
+        // Check if the stack is not already at the edge in the target direction
+        if (isAtEdge(board, x, y, targetDirection)) {
+            return false;
+        }
+
+        // Check if moving in the target direction is possible
+        int newX = x + targetDirection.getDeltaX();
+        int newY = y + targetDirection.getDeltaY();
+        return board.isWithinBounds(newX, newY);
+    }
+
+    /**
+     * Determines the road direction for a player based on their color.
+     *
+     * @param player The player.
+     * @return The target direction for road-building.
+     */
+    private Direction getPlayerRoadDirection(Player player) {
+        // Assuming Black aims left-right and White aims top-bottom
+        if (player.getColor() == Player.Color.BLACK) {
+            return Direction.RIGHT; // Left to Right
+        } else if (player.getColor() == Player.Color.WHITE) {
+            return Direction.DOWN; // Top to Bottom
+        }
+        return null; // Undefined
+    }
+
+    /**
+     * Checks if the position is at the edge in the specified direction.
+     *
+     * @param board     The game board.
+     * @param x         The X coordinate.
+     * @param y         The Y coordinate.
+     * @param direction The direction to check.
+     * @return True if at the edge, false otherwise.
+     */
+    private boolean isAtEdge(Board board, int x, int y, Direction direction) {
+        int size = board.getSize();
+        switch (direction) {
+            case RIGHT:
+                return x == size - 1;
+            case LEFT:
+                return x == 0;
+            case DOWN:
+                return y == size - 1;
+            case UP:
+                return y == 0;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Evaluates the potential to block the opponent's road-building efforts.
      *
      * @param board  The game board.
      * @param player The player.
-     * @param x      The X coordinate.
-     * @param y      The Y coordinate.
-     * @return A score representing the line pattern.
+     * @return A score representing blocking potential.
      */
-    private double evaluateLinePatterns(Board board, Player player, int x, int y) {
+    private double evaluateBlockingPotential(Board board, Player player) {
+        double blockingScore = 0.0;
         int size = board.getSize();
-        double score = 0.0;
+        Player opponent = player.getOpponent();
 
-        // Horizontal Line
-        int playerCount = 0;
-        int opponentCount = 0;
-        for (int i = 0; i < size; i++) {
-            PieceStack stack = board.getBoardStack(i, y);
-            if (!stack.isEmpty()) {
-                Piece topPiece = stack.getTopPiece();
-                if (topPiece.getOwner() == player && topPiece.canBePartOfRoad()) {
-                    playerCount++;
-                } else if (topPiece.getOwner() == player.getOpponent() && topPiece.canBePartOfRoad()) {
-                    opponentCount++;
+        // Iterate over all positions on the board
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                // Check if this position is adjacent to the opponent's road
+                if (isAdjacentToOpponentRoad(board, x, y, opponent)) {
+                    PieceStack stack = board.getBoardStack(x, y);
+                    if (stack.isEmpty()) {
+                        blockingScore += 1.0; // Potential to block
+                    } else {
+                        Piece topPiece = stack.getTopPiece();
+                        if (topPiece.getOwner().equals(player)) {
+                            blockingScore += 1.5; // Already blocking
+                        }
+                    }
                 }
             }
         }
-        score += patternScore(playerCount, opponentCount, size);
-
-        // Vertical Line
-        playerCount = 0;
-        opponentCount = 0;
-        for (int i = 0; i < size; i++) {
-            PieceStack stack = board.getBoardStack(x, i);
-            if (!stack.isEmpty()) {
-                Piece topPiece = stack.getTopPiece();
-                if (topPiece.getOwner() == player && topPiece.canBePartOfRoad()) {
-                    playerCount++;
-                } else if (topPiece.getOwner() == player.getOpponent() && topPiece.canBePartOfRoad()) {
-                    opponentCount++;
-                }
-            }
-        }
-        score += patternScore(playerCount, opponentCount, size);
-
-        return score;
+        return blockingScore;
     }
 
     /**
-     * Calculates the pattern score based on counts of player's and opponent's pieces.
+     * Checks if the position is adjacent to the opponent's road pieces.
      *
-     * @param playerCount   Number of player's pieces in the line.
-     * @param opponentCount Number of opponent's pieces in the line.
-     * @param size          The size of the board.
-     * @return A score representing the potential of the line.
+     * @param board    The game board.
+     * @param x        The X coordinate.
+     * @param y        The Y coordinate.
+     * @param opponent The opponent player.
+     * @return True if adjacent to opponent's road, false otherwise.
      */
-    private double patternScore(int playerCount, int opponentCount, int size) {
-        if (opponentCount == 0 && playerCount > 1) {
-            // Favor lines where the AI has multiple pieces and the opponent has none
-            return playerCount / (double) size;
-        } else if (playerCount == 0 && opponentCount > 1) {
-            // Penalize lines where the opponent has multiple pieces and the AI has none
-            return -opponentCount / (double) size;
+    private boolean isAdjacentToOpponentRoad(Board board, int x, int y, Player opponent) {
+        for (Direction dir : Direction.values()) {
+            int adjX = x + dir.getDeltaX();
+            int adjY = y + dir.getDeltaY();
+            if (board.isWithinBounds(adjX, adjY)) {
+                PieceStack adjStack = board.getBoardStack(adjX, adjY);
+                if (!adjStack.isEmpty()) {
+                    Piece topPiece = adjStack.getTopPiece();
+                    if (topPiece.getOwner().equals(opponent) && topPiece.canBePartOfRoad()) {
+                        return true;
+                    }
+                }
+            }
         }
-        return 0.0;
+        return false;
+    }
+
+    /**
+     * Evaluates the utilization of capstones on the board.
+     *
+     * @param board  The game board.
+     * @param player The player.
+     * @return A score representing capstone utilization.
+     */
+    private double evaluateCapstoneUtilization(Board board, Player player) {
+        double capstoneScore = 0.0;
+        int size = board.getSize();
+
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                PieceStack stack = board.getBoardStack(x, y);
+                if (!stack.isEmpty()) {
+                    Piece topPiece = stack.getTopPiece();
+                    if (topPiece.getPieceType() == Piece.PieceType.CAPSTONE && topPiece.getOwner().equals(player)) {
+                        capstoneScore += evaluateCapstonePosition(board, x, y, player);
+                    }
+                }
+            }
+        }
+        return capstoneScore;
+    }
+
+    /**
+     * Evaluates the impact of a capstone at a given position.
+     *
+     * @param board  The game board.
+     * @param x      The X coordinate.
+     * @param y      The Y coordinate.
+     * @param player The player.
+     * @return A score representing the capstone's impact.
+     */
+    private double evaluateCapstonePosition(Board board, int x, int y, Player player) {
+        double impactScore = 0.0;
+        Player opponent = player.getOpponent();
+
+        for (Direction dir : Direction.values()) {
+            int adjX = x + dir.getDeltaX();
+            int adjY = y + dir.getDeltaY();
+            if (board.isWithinBounds(adjX, adjY)) {
+                PieceStack adjStack = board.getBoardStack(adjX, adjY);
+                if (!adjStack.isEmpty()) {
+                    Piece topPiece = adjStack.getTopPiece();
+                    if (topPiece.getOwner().equals(opponent) && topPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
+                        impactScore += 2.0; // Capstone can flatten opponent's wall
+                    }
+                }
+            }
+        }
+        return impactScore;
+    }
+
+    /**
+     * Counts the number of flat stones for a player.
+     *
+     * @param board  The current game board.
+     * @param player The player whose flat stones are being counted.
+     * @return The number of flat stones.
+     */
+    private int countFlatStones(Board board, Player player) {
+        int count = 0;
+        int size = board.getSize();
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                PieceStack stack = board.getBoardStack(x, y);
+                if (!stack.isEmpty()) {
+                    Piece topPiece = stack.getTopPiece();
+                    if (topPiece.getOwner().equals(player) && topPiece.getPieceType() == Piece.PieceType.FLAT_STONE) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
     }
 
     /**
@@ -223,43 +391,5 @@ public class EvaluationFunction implements Serializable {
             sb.append(";");
         }
         return sb.toString();
-    }
-
-    /**
-     * Counts the number of flat stones for a player.
-     *
-     * @param board  The current game board.
-     * @param player The player whose flat stones are being counted.
-     * @return The number of flat stones.
-     */
-    private int countFlatStones(Board board, Player player) {
-        int count = 0;
-        int size = board.getSize();
-        for (int y = 0; y < size; y++) {
-            for (int x = 0; x < size; x++) {
-                PieceStack stack = board.getBoardStack(x, y);
-                if (!stack.isEmpty()) {
-                    Piece topPiece = stack.getTopPiece();
-                    if (topPiece.getOwner() == player && topPiece.getPieceType() == Piece.PieceType.FLAT_STONE) {
-                        count++;
-                    }
-                }
-            }
-        }
-        return count;
-    }
-
-    // The rest of the methods remain the same, utilizing roadChecker.
-
-    /**
-     * Determines if the player is close to winning.
-     *
-     * @param board  The game board.
-     * @param player The player.
-     * @return True if the player is close to winning, false otherwise.
-     */
-    private boolean isPlayerCloseToWinning(Board board, Player player) {
-        // Implement logic to determine if the player is one move away from winning
-        return roadChecker.isPlayerCloseToWinning(board, player);
     }
 }

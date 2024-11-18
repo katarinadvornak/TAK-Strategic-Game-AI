@@ -94,6 +94,12 @@ public class PieceStack {
         }
         return null;
     }
+    public Player getControlledBy() {
+        if (!this.isEmpty()) {
+            return this.getTopPiece().getOwner();
+        }
+        return null;
+    }
     /**
      * Creates a deep copy of the current PieceStack.
      *
