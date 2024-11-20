@@ -32,7 +32,7 @@ public class HumanPlayer extends Player implements Serializable {
      * @param capstones       The number of capstones.
      */
     public HumanPlayer(Color color, int flatStones, int standingStones, int capstones) {
-        super(color, flatStones, standingStones, capstones);
+        super(color, flatStones, capstones);
         this.scanner = new Scanner(System.in); // Initialize scanner for user input
     }
 

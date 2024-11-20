@@ -36,7 +36,7 @@ public class MinimaxAgent extends Player implements Serializable {
      */
     public MinimaxAgent(Color color, int flatStones, int standingStones,
                         int capstones, int maxDepth) {
-        super(color, flatStones, standingStones, capstones);
+        super(color, flatStones, capstones);
         this.evaluationFunction = new EvaluationFunction();
         this.maxDepth = maxDepth;
         this.minimaxAlgorithm = new MiniMaxAlgorithm2(evaluationFunction, maxDepth, this);

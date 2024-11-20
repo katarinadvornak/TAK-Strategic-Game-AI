@@ -6,6 +6,7 @@ import java.io.Serializable;
 
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
+import com.Tak.Logic.utils.Logger;
 
 /**
  * The Player class represents a player in the Tak game.
@@ -18,8 +19,7 @@ public abstract class Player implements Serializable {
 
     private Color color;
     private Player opponent;
-    private int flatStones;
-    private int standingStones;
+    private int stones;        // Combined count for flat and standing stones
     private int capstones;
     protected int score; // Changed to protected to allow subclasses to access
 
@@ -27,14 +27,12 @@ public abstract class Player implements Serializable {
      * Constructor to initialize a player.
      *
      * @param color           The color of the player (BLACK or WHITE).
-     * @param flatStones      Number of flat stones.
-     * @param standingStones  Number of standing stones.
+     * @param stones          Total number of stones (flat and standing combined).
      * @param capstones       Number of capstones.
      */
-    public Player(Color color, int flatStones, int standingStones, int capstones) {
+    public Player(Color color, int stones, int capstones) {
         this.color = color;
-        this.flatStones = flatStones;
-        this.standingStones = standingStones;
+        this.stones = stones;
         this.capstones = capstones;
         this.score = 0;
     }
@@ -69,19 +67,22 @@ public abstract class Player implements Serializable {
     public void decrementPiece(Piece.PieceType pieceType) {
         switch (pieceType) {
             case FLAT_STONE:
-                if (flatStones > 0) {
-                    flatStones--;
-                }
-                break;
             case STANDING_STONE:
-                if (standingStones > 0) {
-                    standingStones--;
+                if (stones > 0) {
+                    stones--;
+                } else {
+                    Logger.log("Player", "No stones left to decrement.");
                 }
                 break;
             case CAPSTONE:
                 if (capstones > 0) {
                     capstones--;
+                } else {
+                    Logger.log("Player", "No CAPSTONEs left to decrement.");
                 }
+                break;
+            default:
+                Logger.log("Player", "Unknown PieceType: " + pieceType);
                 break;
         }
     }
@@ -94,13 +95,14 @@ public abstract class Player implements Serializable {
     public void incrementPiece(Piece.PieceType pieceType) {
         switch (pieceType) {
             case FLAT_STONE:
-                flatStones++;
-                break;
             case STANDING_STONE:
-                standingStones++;
+                stones++;
                 break;
             case CAPSTONE:
                 capstones++;
+                break;
+            default:
+                Logger.log("Player", "Unknown PieceType: " + pieceType);
                 break;
         }
     }
@@ -112,9 +114,8 @@ public abstract class Player implements Serializable {
     public boolean hasPiecesLeft(Piece.PieceType pieceType) {
         switch (pieceType) {
             case FLAT_STONE:
-                return flatStones > 0;
             case STANDING_STONE:
-                return standingStones > 0;
+                return stones > 0;
             case CAPSTONE:
                 return capstones > 0;
             default:
@@ -132,9 +133,8 @@ public abstract class Player implements Serializable {
     public int getRemainingPieces(Piece.PieceType pieceType) {
         switch (pieceType) {
             case FLAT_STONE:
-                return flatStones;
             case STANDING_STONE:
-                return standingStones;
+                return stones;
             case CAPSTONE:
                 return capstones;
             default:
@@ -145,14 +145,12 @@ public abstract class Player implements Serializable {
     /**
      * Resets the player's pieces to the specified counts.
      *
-     * @param flat     Number of flat stones.
-     * @param standing Number of standing stones.
-     * @param capstone Number of capstones.
+     * @param stones     Total number of stones (flat and standing combined).
+     * @param capstones Number of capstones.
      */
-    public void resetPieces(int flat, int standing, int capstone) {
-        this.flatStones = flat;
-        this.standingStones = standing;
-        this.capstones = capstone;
+    public void resetPieces(int stones, int capstones) {
+        this.stones = stones;
+        this.capstones = capstones;
         System.out.println(this.color + " pieces have been reset.");
     }
 

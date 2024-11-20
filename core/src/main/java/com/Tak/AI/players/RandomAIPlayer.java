@@ -26,7 +26,7 @@ public class RandomAIPlayer extends Player {
      * @param capstones       Number of capstones.
      */
     public RandomAIPlayer(Color color, int flatStones, int standingStones, int capstones) {
-        super(color, flatStones, standingStones, capstones);
+        super(color, flatStones, capstones);
     }
 
     /**

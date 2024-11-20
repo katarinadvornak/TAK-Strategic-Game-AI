@@ -316,7 +316,7 @@ public class TakGame implements Serializable {
         gameStateManager.resetGame();
 
         for (Player player : players) {
-            player.resetPieces(15, 6, 1); // Standard Counts
+            player.resetPieces(21, 1); // Standard Counts
             if (resetScores) {
                 player.resetScore();
                 if (player instanceof QPlayer) {

@@ -48,7 +48,7 @@ public class QPlayer extends Player implements Serializable {
      */
     public QPlayer(Color color, int flatStones, int standingStones,
                   int capstones, boolean useReinforcementLearning) {
-        super(color, flatStones, standingStones, capstones);
+        super(color, flatStones, capstones);
         this.useReinforcementLearning = useReinforcementLearning;
 
         if (useReinforcementLearning) {
