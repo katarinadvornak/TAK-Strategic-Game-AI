@@ -46,7 +46,7 @@ public class EvaluationFunction implements Serializable {
 
         // Check for road win conditions
         if (roadChecker.checkForRoadWin(player, board)) {
-            Logger.log("EvaluationFunction", player.getColor() + " has completed a road and wins!");
+            //Logger.log("EvaluationFunction", player.getColor() + " has completed a road and wins!");
             evaluationCache.put(stateHash, Double.POSITIVE_INFINITY);
             return Double.POSITIVE_INFINITY;
         } else if (roadChecker.checkForRoadWin(player.getOpponent(), board)) {

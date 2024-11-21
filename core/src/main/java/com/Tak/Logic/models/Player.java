@@ -71,18 +71,18 @@ public abstract class Player implements Serializable {
                 if (stones > 0) {
                     stones--;
                 } else {
-                    Logger.log("Player", "No stones left to decrement.");
+                    //Logger.log("Player", "No stones left to decrement.");
                 }
                 break;
             case CAPSTONE:
                 if (capstones > 0) {
                     capstones--;
                 } else {
-                    Logger.log("Player", "No CAPSTONEs left to decrement.");
+                    //Logger.log("Player", "No CAPSTONEs left to decrement.");
                 }
                 break;
             default:
-                Logger.log("Player", "Unknown PieceType: " + pieceType);
+                //Logger.log("Player", "Unknown PieceType: " + pieceType);
                 break;
         }
     }
@@ -102,7 +102,7 @@ public abstract class Player implements Serializable {
                 capstones++;
                 break;
             default:
-                Logger.log("Player", "Unknown PieceType: " + pieceType);
+                //Logger.log("Player", "Unknown PieceType: " + pieceType);
                 break;
         }
     }

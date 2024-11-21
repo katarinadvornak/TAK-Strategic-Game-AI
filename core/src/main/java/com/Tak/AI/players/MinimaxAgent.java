@@ -56,10 +56,10 @@ public class MinimaxAgent extends Player implements Serializable {
 
         if (bestMove != null) {
             bestMove.execute(board);
-            Logger.debug("MinimaxAgent", this.getColor() + " executed move: " + bestMove.toString());
+            //Logger.debug("MinimaxAgent", this.getColor() + " executed move: " + bestMove.toString());
             game.incrementMoveCount();
             game.checkWinConditions();
-            game.switchPlayer(); // Add this line
+            game.switchPlayer();
         } else {
             throw new InvalidMoveException("No valid moves available.");
         }

@@ -75,10 +75,10 @@ public class TakGame implements Serializable {
         if (players.size() >= 2) {
             players.get(0).setOpponent(players.get(1));
             players.get(1).setOpponent(players.get(0));
-            Logger.log("TakGame", "Set opponents for the first two players.");
+            //Logger.log("TakGame", "Set opponents for the first two players.");
         }
 
-        Logger.log("TakGame", "Initialized TakGame with custom players.");
+        //Logger.log("TakGame", "Initialized TakGame with custom players.");
 
         winChecker = new WinChecker();
         gameStateManager = new GameStateManager(board, players);
@@ -90,7 +90,7 @@ public class TakGame implements Serializable {
     public void endGameAsTie() {
         isGameEnded = true;
         winner = null;
-        Logger.log("TakGame", "Game ended as a tie.");
+        //Logger.log("TakGame", "Game ended as a tie.");
     }
 
     /**
@@ -108,7 +108,7 @@ public class TakGame implements Serializable {
             player2.setOpponent(player1);
             players.add(player1);
             players.add(player2);
-            Logger.log("TakGame", "Added two HumanPlayers: BLACK and WHITE.");
+            //Logger.log("TakGame", "Added two HumanPlayers: BLACK and WHITE.");
         } else {
             // Add AIPlayers based on aiPlayersCount
             if (aiPlayersCount == 1) {
@@ -118,7 +118,7 @@ public class TakGame implements Serializable {
                 aiPlayer.setOpponent(player1);
                 players.add(player1);
                 players.add(aiPlayer);
-                Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
+                //Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
             } else if (aiPlayersCount == 2) {
                 QPlayer aiPlayer1 = new QPlayer(Player.Color.BLACK, 15, 6, 1, true); // AI Player BLACK
                 QPlayer aiPlayer2 = new QPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
@@ -126,14 +126,14 @@ public class TakGame implements Serializable {
                 aiPlayer2.setOpponent(aiPlayer1);
                 players.add(aiPlayer1);
                 players.add(aiPlayer2);
-                Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
+                //Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
             } else {
                 throw new IllegalArgumentException("aiPlayersCount must be 0, 1, or 2.");
             }
         }
 
         // Log the final players list
-        Logger.log("TakGame", "Final Players List:");
+        //Logger.log("TakGame", "Final Players List:");
         for (Player p : players) {
             Logger.log("TakGame", p.getClass().getSimpleName() + " - Color: " + p.getColor());
         }
@@ -152,7 +152,7 @@ public class TakGame implements Serializable {
             if (players.size() == 2) {
                 players.get(0).setOpponent(players.get(1));
                 players.get(1).setOpponent(players.get(0));
-                Logger.log("TakGame", "Set opponents for players.");
+                //Logger.log("TakGame", "Set opponents for players.");
             }
         }
     }
@@ -183,7 +183,7 @@ public class TakGame implements Serializable {
         }
 
         Player currentPlayer = getCurrentPlayer();
-        Logger.log("TakGame", currentPlayer.getColor() + " is moving stack from (" + fromX + ", " + fromY + ") " + direction + " with drop counts " + Arrays.toString(dropCounts));
+        //Logger.log("TakGame", currentPlayer.getColor() + " is moving stack from (" + fromX + ", " + fromY + ") " + direction + " with drop counts " + Arrays.toString(dropCounts));
         int numberOfPieces = 0;
         for (int count : dropCounts) {
             numberOfPieces += count;
@@ -205,7 +205,7 @@ public class TakGame implements Serializable {
         if (validator.isValidMove(fromX, fromY, move)) {
             MoveExecutor executor = new MoveExecutor(board, currentPlayer);
             executor.executeMove(fromX, fromY, move);
-            Logger.log("TakGame", currentPlayer.getColor() + " moved stack from (" + fromX + ", " + fromY + ") " + direction);
+            //Logger.log("TakGame", currentPlayer.getColor() + " moved stack from (" + fromX + ", " + fromY + ") " + direction);
         } else {
             throw new InvalidMoveException("Move validation failed.");
         }
@@ -247,11 +247,11 @@ public class TakGame implements Serializable {
         }
 
         Player currentPlayer = getCurrentPlayer();
-        Logger.log("TakGame", currentPlayer.getColor() + " is placing a " + pieceType + " at (" + x + ", " + y + ") on behalf of " + pieceOwner.getColor());
+        //Logger.log("TakGame", currentPlayer.getColor() + " is placing a " + pieceType + " at (" + x + ", " + y + ") on behalf of " + pieceOwner.getColor());
         Piece piece = new Piece(pieceType, pieceOwner);
         board.placePiece(x, y, piece);
         pieceOwner.decrementPiece(pieceType);
-        Logger.log("TakGame", currentPlayer.getColor() + " placed a " + pieceType + " at (" + x + ", " + y + ")");
+        //Logger.log("TakGame", currentPlayer.getColor() + " placed a " + pieceType + " at (" + x + ", " + y + ")");
         incrementMoveCount();
         checkWinConditions();
         switchPlayer();
@@ -262,7 +262,7 @@ public class TakGame implements Serializable {
      */
     public synchronized void incrementMoveCount() {
         moveCount++;
-        Logger.log("TakGame", "Move count incremented to: " + moveCount);
+        //Logger.log("TakGame", "Move count incremented to: " + moveCount);
     }
 
     /**
@@ -291,14 +291,14 @@ public class TakGame implements Serializable {
             isGameEnded = true;
             winner = gameStateManager.getWinner();
             if (winner != null) {
-                Logger.log("TakGame", "Player " + winner.getColor() + " wins the game!");
+                //Logger.log("TakGame", "Player " + winner.getColor() + " wins the game!");
             } else {
-                Logger.log("TakGame", "The game ended in a tie.");
+                //Logger.log("TakGame", "The game ended in a tie.");
             }
             return;
         }
         // No win conditions met yet
-        Logger.log("TakGame", "No win conditions met yet.");
+        //Logger.log("TakGame", "No win conditions met yet.");
     }
 
     /**
@@ -324,7 +324,7 @@ public class TakGame implements Serializable {
                 }
             }
         }
-        Logger.log("TakGame", "Game has been reset. Move count: " + moveCount + ", Game ended: " + isGameEnded);
+        //Logger.log("TakGame", "Game has been reset. Move count: " + moveCount + ", Game ended: " + isGameEnded);
     }
 
     /**
@@ -333,7 +333,7 @@ public class TakGame implements Serializable {
     public synchronized void switchPlayer() {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         Player newPlayer = getCurrentPlayer();
-        Logger.log("TakGame", "Switched to player: " + newPlayer.getColor());
+        //Logger.log("TakGame", "Switched to player: " + newPlayer.getColor());
     }
 
     /**
@@ -440,7 +440,7 @@ public class TakGame implements Serializable {
             boardState.append("\n");
         }
 
-        Logger.log("Game", boardState.toString());
+        //Logger.log("Game", boardState.toString());
     }
 
     

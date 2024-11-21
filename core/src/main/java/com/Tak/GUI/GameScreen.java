@@ -229,7 +229,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     }
                 } catch (InvalidMoveException | GameOverException e) {
                     // Handle exceptions
-                    Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
+                    //Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
                 } finally {
                     // Re-enable input if it's a human player's turn
                     if (!(takGame.getCurrentPlayer() instanceof MinimaxAgent)) {

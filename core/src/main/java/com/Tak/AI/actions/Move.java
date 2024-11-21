@@ -143,7 +143,7 @@ public class Move extends Action implements Serializable {
                 }
                 if (movingTopPiece.isCapstone() && destTopPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
                     destTopPiece.setPieceType(Piece.PieceType.FLAT_STONE);
-                    Logger.debug("Move", "Capstone flattened a Standing Stone at (" + x + ", " + y + ").");
+                    //Logger.debug("Move", "Capstone flattened a Standing Stone at (" + x + ", " + y + ").");
                 }
             }
             List<Piece> piecesToDrop = new ArrayList<>(movedPieces.subList(0, count));
@@ -152,7 +152,7 @@ public class Move extends Action implements Serializable {
                 destStack.addPiece(piece);
             }
             destinations.add(new Destination(x, y, new ArrayList<>(piecesToDrop)));
-            Logger.debug("Move", player.getColor() + " dropped " + count + " piece(s) at (" + x + ", " + y + ").");
+            //Logger.debug("Move", player.getColor() + " dropped " + count + " piece(s) at (" + x + ", " + y + ").");
 
             if (movedPieces.isEmpty()) {
                 break;
@@ -204,7 +204,7 @@ public class Move extends Action implements Serializable {
         destinations.clear();
         executed = false;
 
-        Logger.debug("Move", "Move action undone for player " + playerColor + " at (" + fromX + ", " + fromY + ").");
+        //Logger.debug("Move", "Move action undone for player " + playerColor + " at (" + fromX + ", " + fromY + ").");
     }
 
     /**

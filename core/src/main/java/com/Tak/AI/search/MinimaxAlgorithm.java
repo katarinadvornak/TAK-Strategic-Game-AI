@@ -144,7 +144,7 @@ public class MinimaxAlgorithm implements Serializable {
             return eval;
         }
 
-        Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Evaluating " + (isMaximizing ? "maximizing" : "minimizing") + " player.");
+        //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Evaluating " + (isMaximizing ? "maximizing" : "minimizing") + " player.");
 
 
         Player currentPlayer = isMaximizing ? player : player.getOpponent();
@@ -163,15 +163,15 @@ public class MinimaxAlgorithm implements Serializable {
                 try {
                     action.execute(boardAfterAction);
                     double eval = minimax(boardAfterAction, depth - 1, false, alpha, beta, player, moveCount + 1);
-                    Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Move: " + action + " | Score: " + eval);
+                    //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Move: " + action + " | Score: " + eval);
                     maxEval = Math.max(maxEval, eval);
                     alpha = Math.max(alpha, eval);
                     if (beta <= alpha) {
-                        Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Pruning occurs (alpha: " + alpha + ", beta: " + beta + ")");
+                        //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Pruning occurs (alpha: " + alpha + ", beta: " + beta + ")");
                         break;
                     }
                 } catch (InvalidMoveException e) {
-                    Logger.log("MinimaxAlgorithm", "Invalid move encountered: " + action);
+                    //Logger.log("MinimaxAlgorithm", "Invalid move encountered: " + action);
                     continue;
                 }
             }

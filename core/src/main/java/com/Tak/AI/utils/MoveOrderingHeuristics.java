@@ -35,13 +35,12 @@ public class MoveOrderingHeuristics {
                 .thenComparingInt(moves::indexOf)); // Maintain original order for ties
 
             // Debug logging for sorted order
-            Logger.debug("MoveOrdering", "Order of moves after sorting:");
+            //Logger.debug("MoveOrdering", "Order of moves after sorting:");
             for (Action action : moves) {
-                Logger.debug("MoveOrdering", "Action: " + action + " | Score: " +
-                    evaluateAction(action, board, player, evalFunction));
+                //Logger.debug("MoveOrdering", "Action: " + action + " | Score: " + evaluateAction(action, board, player, evalFunction));
             }
         } catch (Exception e) {
-            Logger.log("MoveOrdering", "Exception during move ordering: " + e.getMessage());
+            //Logger.log("MoveOrdering", "Exception during move ordering: " + e.getMessage());
             e.printStackTrace();
         }
     }

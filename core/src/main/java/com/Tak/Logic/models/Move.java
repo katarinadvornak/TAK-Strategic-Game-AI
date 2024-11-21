@@ -67,7 +67,7 @@ public class Move extends Action {
         }
         MoveExecutor executor = new MoveExecutor(board, player);
         executor.executeMove(startX, startY, this);
-        Logger.log("Move", "Executed move: " + this.toString());
+        //Logger.log("Move", "Executed move: " + this.toString());
     }
 
     /**
@@ -86,7 +86,7 @@ public class Move extends Action {
 
             PieceStack destinationStack = board.getBoardStack(x, y);
             if (destinationStack == null || destinationStack.size() < piecesToRemove) {
-                Logger.log("Move", "Cannot undo move: insufficient pieces at (" + x + ", " + y + ").");
+                //Logger.log("Move", "Cannot undo move: insufficient pieces at (" + x + ", " + y + ").");
                 return;
             }
 
@@ -95,7 +95,7 @@ public class Move extends Action {
             try {
                 removedPieces = destinationStack.removePieces(piecesToRemove);
             } catch (InvalidMoveException e) {
-                Logger.log("Move", "Error during undo: " + e.getMessage());
+                //Logger.log("Move", "Error during undo: " + e.getMessage());
                 return;
             }
 
@@ -104,7 +104,7 @@ public class Move extends Action {
             int sourceY = positionsY.get(0);
             PieceStack sourceStack = board.getBoardStack(sourceX, sourceY);
             if (sourceStack == null) {
-                Logger.log("Move", "Cannot undo move: source stack at (" + sourceX + ", " + sourceY + ") does not exist.");
+                //Logger.log("Move", "Cannot undo move: source stack at (" + sourceX + ", " + sourceY + ") does not exist.");
                 return;
             }
 
@@ -112,7 +112,7 @@ public class Move extends Action {
                 sourceStack.addPiece(piece);
             }
 
-            Logger.log("Move", "Undid move: Moved " + piecesToRemove + " piece(s) back to (" + sourceX + ", " + sourceY + ").");
+            //Logger.log("Move", "Undid move: Moved " + piecesToRemove + " piece(s) back to (" + sourceX + ", " + sourceY + ").");
         }
     }
 

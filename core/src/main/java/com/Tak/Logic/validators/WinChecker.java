@@ -30,7 +30,7 @@ public class WinChecker {
     public boolean checkForRoadWin(Player player, Board board) {
         boolean hasRoad = roadChecker.checkForRoadWin(player, board);
         if (hasRoad) {
-            Logger.log("WinChecker", "Player " + player.getColor() + " has achieved a road win.");
+            //Logger.log("WinChecker", "Player " + player.getColor() + " has achieved a road win.");
         }
         return hasRoad;
     }
@@ -53,7 +53,7 @@ public class WinChecker {
 
         for (Player player : players) {
             int flats = countFlatStones(player, board);
-            Logger.log("WinChecker", "Player " + player.getColor() + " has " + flats + " flat stone(s).");
+            //Logger.log("WinChecker", "Player " + player.getColor() + " has " + flats + " flat stone(s).");
             if (flats > maxFlats) {
                 maxFlats = flats;
                 topPlayer = player;
@@ -64,10 +64,10 @@ public class WinChecker {
         }
 
         if (isTie) {
-            Logger.log("WinChecker", "The game is a tie based on flat stones.");
+            //Logger.log("WinChecker", "The game is a tie based on flat stones.");
             return null; // Tie
         } else {
-            Logger.log("WinChecker", "Player " + topPlayer.getColor() + " wins by majority of flat stones.");
+            //Logger.log("WinChecker", "Player " + topPlayer.getColor() + " wins by majority of flat stones.");
             return topPlayer;
         }
     }

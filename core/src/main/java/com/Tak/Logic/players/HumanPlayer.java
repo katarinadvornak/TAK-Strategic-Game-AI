@@ -61,7 +61,7 @@ public class HumanPlayer extends Player implements Serializable {
      */
     @Override
     public void makeMove(TakGame game) throws InvalidMoveException, GameOverException {
-        Logger.log("HumanPlayer", "It's your turn: " + this.getColor());
+        //Logger.log("HumanPlayer", "It's your turn: " + this.getColor());
 
         try {
             // Collect starting position

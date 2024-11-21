@@ -81,17 +81,17 @@ public class MiniMaxTest {
                     moveCount++;
                     game.switchPlayer();
                 } catch (InvalidMoveException | GameOverException e) {
-                    Logger.log("MiniMaxTest", "Exception encountered: " + e.getMessage());
+                    //Logger.log("MiniMaxTest", "Exception encountered: " + e.getMessage());
                     break;
                 }
         }
 
         // Determine the winner and update counts
         Player winner = game.getWinner();
-        Logger.log("MiniMaxTest", " Winner: " + (winner == minimaxPlayer ? "Minimax AI" : "Random AI"));
+        //Logger.log("MiniMaxTest", " Winner: " + (winner == minimaxPlayer ? "Minimax AI" : "Random AI"));
         Board board = game.getBoard();
         board.printBoard();
-        Logger.log("MiniMaxTest", " Move count: " + moveCount);
+        //Logger.log("MiniMaxTest", " Move count: " + moveCount);
             
 
 

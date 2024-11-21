@@ -88,7 +88,7 @@ public class MoveExecutor {
                 // Handle capstone flattening standing stones
                 if (movingPiece.isCapstone() && topPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
                     topPiece.setPieceType(Piece.PieceType.FLAT_STONE);
-                    Logger.log("MoveExecutor", "Capstone flattened a Standing Stone at (" + x + ", " + y + ").");
+                    //Logger.log("MoveExecutor", "Capstone flattened a Standing Stone at (" + x + ", " + y + ").");
                 }
             }
 
@@ -104,7 +104,7 @@ public class MoveExecutor {
             }
 
             // Log the drop action
-            Logger.log("MoveExecutor", currentPlayer.getColor() + " dropped " + dropCount + " piece(s) at (" + x + ", " + y + ").");
+            //Logger.log("MoveExecutor", currentPlayer.getColor() + " dropped " + dropCount + " piece(s) at (" + x + ", " + y + ").");
 
             // Store the new position for undo functionality
             move.getPositionsX().add(x);

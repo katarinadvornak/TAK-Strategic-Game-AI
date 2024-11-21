@@ -49,7 +49,7 @@ public class AITest {
                 try {
                     currentPlayer.makeMove(game);
                 } catch (InvalidMoveException | GameOverException e) {
-                    Logger.log("AITest", "Exception encountered: " + e.getMessage());
+                    //Logger.log("AITest", "Exception encountered: " + e.getMessage());
                     break;
                 }
             }

@@ -89,6 +89,6 @@ public class GameStateManager {
         this.isGameOver = false;
         this.winner = null;
         this.board.reset(); // Assuming Board has a method to reset its state
-        Logger.log("GameStateManager", "Game state has been reset.");
+        //Logger.log("GameStateManager", "Game state has been reset.");
     }
 }
