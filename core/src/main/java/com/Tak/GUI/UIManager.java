@@ -29,7 +29,7 @@ public class UIManager {
     // UI elements
     public TextButton newGameButton, exitButton;
     public Label currentPlayerLabel;
-    public Label playerBlackScoreLabel, playerWhiteScoreLabel;
+    public Label playerBlackScoreLabel, playerGREENScoreLabel;
     public List<String> movesList;
     public Image normalStoneImage, standingStoneImage, capstoneImage;
     public Table hotbarTable;
@@ -94,7 +94,7 @@ public class UIManager {
 
         // Create cursor and selection textures
         Pixmap cursorPixmap = new Pixmap(1, 20, Pixmap.Format.RGBA8888);
-        cursorPixmap.setColor(Color.WHITE);
+        cursorPixmap.setColor(Color.GREEN);
         cursorPixmap.fill();
         skin.add("cursor", new Texture(cursorPixmap));
         cursorPixmap.dispose();
@@ -137,7 +137,7 @@ public class UIManager {
         // Create and add TextFieldStyle
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
         textFieldStyle.font = skin.getFont("default-font");
-        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.fontColor = Color.GREEN;
         textFieldStyle.cursor = skin.newDrawable("cursor");
         textFieldStyle.selection = skin.newDrawable("selection");
         textFieldStyle.background = skin.newDrawable("textfield-background");
@@ -163,15 +163,15 @@ public class UIManager {
         newGameButton = new TextButton("New Game", skin);
         exitButton = new TextButton("Exit", skin);
 
-        // Create small black and white circles for player icons
+        // Create small black and GREEN circles for player icons
         Texture playerBlackTexture = createCircleTexture(Color.BLACK);
-        Texture playerWhiteTexture = createCircleTexture(Color.WHITE);
+        Texture playerGREENTexture = createCircleTexture(Color.GREEN);
         Image playerBlackImage = new Image(new TextureRegionDrawable(new TextureRegion(playerBlackTexture)));
-        Image playerWhiteImage = new Image(new TextureRegionDrawable(new TextureRegion(playerWhiteTexture)));
+        Image playerGREENImage = new Image(new TextureRegionDrawable(new TextureRegion(playerGREENTexture)));
 
         // Create labels for player scores
         playerBlackScoreLabel = new Label("Score: 0", skin);
-        playerWhiteScoreLabel = new Label("Score: 0", skin);
+        playerGREENScoreLabel = new Label("Score: 0", skin);
 
         // Initialize move list
         movesArray = new ArrayList<>();
@@ -195,9 +195,9 @@ public class UIManager {
         leftPanel.add(playerBlackImage).size(64, 64).row();
         leftPanel.add(playerBlackScoreLabel).row();
 
-        // Player White info
-        leftPanel.add(playerWhiteImage).size(64, 64).row();
-        leftPanel.add(playerWhiteScoreLabel).row();
+        // Player GREEN info
+        leftPanel.add(playerGREENImage).size(64, 64).row();
+        leftPanel.add(playerGREENScoreLabel).row();
 
         // Current Player Label
         leftPanel.add(currentPlayerLabel).padTop(10).row();
@@ -415,7 +415,7 @@ public class UIManager {
      * Updates the hotbar colors and piece count labels based on the current game state.
      */
     public void updateHotbarColors() {
-        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
+        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLACK;
 
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
@@ -461,11 +461,11 @@ public class UIManager {
     public void updatePlayerScores() {
         // Retrieve scores from players
         int playerBlackScore = takGame.getPlayer1().getScore();
-        int playerWhiteScore = takGame.getPlayer2().getScore();
+        int playerGREENScore = takGame.getPlayer2().getScore();
 
         // Update score labels
         playerBlackScoreLabel.setText("Score: " + playerBlackScore);
-        playerWhiteScoreLabel.setText("Score: " + playerWhiteScore);
+        playerGREENScoreLabel.setText("Score: " + playerGREENScore);
     }
 
     /**
@@ -512,7 +512,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createNormalStonePlaceholder() {
-        return createNormalStonePlaceholderWithColor(Color.WHITE);
+        return createNormalStonePlaceholderWithColor(Color.GREEN);
     }
 
     /**
@@ -521,7 +521,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createStandingStonePlaceholder() {
-        return createStandingStonePlaceholderWithColor(Color.WHITE);
+        return createStandingStonePlaceholderWithColor(Color.GREEN);
     }
 
     /**
@@ -530,7 +530,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createCapstonePlaceholder() {
-        return createCapstonePlaceholderWithColor(Color.WHITE);
+        return createCapstonePlaceholderWithColor(Color.GREEN);
     }
 
     /**

@@ -149,7 +149,7 @@ public class GameRenderer {
                         pieceInstance.transform.setToTranslation(posX, pieceBaseY, posZ);
 
                         // Apply color based on the owner
-                        Color pieceColor = piece.getOwner().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
+                        Color pieceColor = piece.getOwner().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLUE;
                         ((ColorAttribute) pieceInstance.materials.get(0).get(ColorAttribute.Diffuse)).color.set(pieceColor);
 
                         pieceInstances.add(pieceInstance);

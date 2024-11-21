@@ -65,9 +65,9 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
      */
     public void create() {
         // Initialize the game logic
-        Player humanPlayer = new com.Tak.Logic.players.HumanPlayer(Player.Color.WHITE, 21, 1, 1); // Adjust piece counts as needed
+        Player humanPlayer = new com.Tak.Logic.players.HumanPlayer(Player.Color.GREEN, 21, 1, 1); // Adjust piece counts as needed
         Player aiPlayer;
-        aiPlayer = new MinimaxAgent(Player.Color.BLACK, 21, 1, 1, 3); // Adjust piece counts and depth as needed
+        aiPlayer = new MinimaxAgent(Player.Color.BLUE, 21, 1, 1, 3); // Adjust piece counts and depth as needed
         
 
         // Set opponents
@@ -247,7 +247,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
     private void renderSelectionArrow() {
         shapeRenderer.setProjectionMatrix(uiManager.getStage().getCamera().combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(Color.WHITE);
+        shapeRenderer.setColor(Color.GREEN);
 
         float x = 0, y = 0;
         switch (selectedPieceType) {
@@ -376,13 +376,13 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         if (winner != null) {
             message = winner.getColor() + " wins!\n"
                 + "Final Scores:\n"
-                + "Black: " + takGame.getPlayer1().getScore() + "\n"
-                + "White: " + takGame.getPlayer2().getScore();
+                + "BLUE: " + takGame.getPlayer1().getScore() + "\n"
+                + "GREEN: " + takGame.getPlayer2().getScore();
         } else {
             message = "It's a tie!\n"
                 + "Final Scores:\n"
-                + "Black: " + takGame.getPlayer1().getScore() + "\n"
-                + "White: " + takGame.getPlayer2().getScore();
+                + "BLUE: " + takGame.getPlayer1().getScore() + "\n"
+                + "GREEN: " + takGame.getPlayer2().getScore();
         }
 
         Dialog dialog = new Dialog("Game Over", uiManager.getSkin(), "dialog") {

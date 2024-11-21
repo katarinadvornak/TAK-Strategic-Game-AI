@@ -20,8 +20,8 @@ public class AITest {
         int boardSize = 5;
 
         // Initialize AIPlayers with standard Tak piece counts
-        QPlayer aiPlayer1 = new QPlayer(Color.BLACK, 21, 0, 1, true);
-        QPlayer aiPlayer2 = new QPlayer(Color.WHITE, 21, 0, 1, true);
+        QPlayer aiPlayer1 = new QPlayer(Color.BLUE, 21, 0, 1, true);
+        QPlayer aiPlayer2 = new QPlayer(Color.GREEN, 21, 0, 1, true);
 
         List<Player> players = new ArrayList<>();
         players.add(aiPlayer1);
@@ -35,8 +35,8 @@ public class AITest {
         TakGame game = new TakGame(boardSize, players);
 
         int numGames = 5000; // Number of games for training
-        int blackWins = 0;
-        int whiteWins = 0;
+        int BLUEWins = 0;
+        int GREENWins = 0;
         int draws = 0;
 
         long startTime = System.currentTimeMillis(); // Track the start time
@@ -57,12 +57,12 @@ public class AITest {
             // Determine the winner and update counts
             Player winner = game.getWinner();
             if (winner != null) {
-                if (winner.getColor() == Color.BLACK) {
-                    blackWins++;
+                if (winner.getColor() == Color.BLUE) {
+                    BLUEWins++;
                     aiPlayer1.getQLearningAgent().updateQTableAfterGame(100.0); // AIPlayer1 wins
                     aiPlayer2.getQLearningAgent().updateQTableAfterGame(-100.0); // AIPlayer2 loses
-                } else if (winner.getColor() == Color.WHITE) {
-                    whiteWins++;
+                } else if (winner.getColor() == Color.GREEN) {
+                    GREENWins++;
                     aiPlayer1.getQLearningAgent().updateQTableAfterGame(-100.0); // AIPlayer1 loses
                     aiPlayer2.getQLearningAgent().updateQTableAfterGame(100.0); // AIPlayer2 wins
                 }
@@ -83,8 +83,8 @@ public class AITest {
                 aiPlayer2.saveState();
                 // Optionally, print progress
                 System.out.println("Progress after " + (i + 1) + " games:");
-                System.out.println("BLACK Wins: " + blackWins);
-                System.out.println("WHITE Wins: " + whiteWins);
+                System.out.println("BLUE Wins: " + BLUEWins);
+                System.out.println("GREEN Wins: " + GREENWins);
                 System.out.println("Draws: " + draws);
             }
         }
@@ -100,8 +100,8 @@ public class AITest {
         // Final summary
         System.out.println("All training games completed in " + seconds + " seconds.");
         System.out.println("Final Results after " + numGames + " games:");
-        System.out.println("BLACK Wins: " + blackWins);
-        System.out.println("WHITE Wins: " + whiteWins);
+        System.out.println("BLUE Wins: " + BLUEWins);
+        System.out.println("GREEN Wins: " + GREENWins);
         System.out.println("Draws: " + draws);
 
         // **//TODO:** Implement functionality to evaluate and display AI performance metrics

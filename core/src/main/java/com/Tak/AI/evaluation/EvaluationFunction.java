@@ -194,10 +194,10 @@ public class EvaluationFunction implements Serializable {
      * @return The target direction for road-building.
      */
     private Direction getPlayerRoadDirection(Player player) {
-        // Assuming Black aims left-right and White aims top-bottom
-        if (player.getColor() == Player.Color.BLACK) {
+        // Assuming BLUE aims left-right and GREEN aims top-bottom
+        if (player.getColor() == Player.Color.BLUE) {
             return Direction.RIGHT; // Left to Right
-        } else if (player.getColor() == Player.Color.WHITE) {
+        } else if (player.getColor() == Player.Color.GREEN) {
             return Direction.DOWN; // Top to Bottom
         }
         return null; // Undefined
@@ -373,7 +373,7 @@ public class EvaluationFunction implements Serializable {
      */
     private String generateStateHash(Board board, Player player) {
         StringBuilder sb = new StringBuilder();
-        sb.append(player.getColor() == Player.Color.BLACK ? "B_" : "W_");
+        sb.append(player.getColor() == Player.Color.BLUE ? "B_" : "W_");
 
         for (int y = 0; y < board.getSize(); y++) {
             for (int x = 0; x < board.getSize(); x++) {

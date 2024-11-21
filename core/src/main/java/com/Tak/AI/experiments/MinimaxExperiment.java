@@ -11,12 +11,12 @@ import java.util.*;
 public class MinimaxExperiment {
     private final MinimaxAlgorithm minimaxAlgorithm;
     private final EvaluationFunction evaluationFunction;
-    private final Player whitePlayer;
+    private final Player GREENPlayer;
 
     public MinimaxExperiment() {
-        this.whitePlayer = new MinimaxAgent(Player.Color.WHITE, 21, 1, 1, 3); // Example piece counts
+        this.GREENPlayer = new MinimaxAgent(Player.Color.GREEN, 21, 1, 1, 3); // Example piece counts
         this.evaluationFunction = new EvaluationFunction();
-        this.minimaxAlgorithm = new MinimaxAlgorithm(this.evaluationFunction, 5, this.whitePlayer);
+        this.minimaxAlgorithm = new MinimaxAlgorithm(this.evaluationFunction, 5, this.GREENPlayer);
     }
 
     public List<Results.DepthExperimentResult> runDepthAnalysis(int startDepth, int endDepth, int gamesPerDepth) {
@@ -42,14 +42,14 @@ public class MinimaxExperiment {
 
         for (Board boardPosition : openingPositions) {
             long startTime = System.nanoTime();
-            Action chosenMove = minimaxAlgorithm.findBestMove(boardPosition, whitePlayer, searchDepth);
+            Action chosenMove = minimaxAlgorithm.findBestMove(boardPosition, GREENPlayer, searchDepth);
             long endTime = System.nanoTime();
 
             openingExperimentResults.add(new Results.OpeningExperimentResult(
                 boardPosition,
                 chosenMove,
                 (endTime - startTime) / 1_000_000.0,
-                evaluationFunction.evaluate(boardPosition, whitePlayer)
+                evaluationFunction.evaluate(boardPosition, GREENPlayer)
             ));
         }
         return openingExperimentResults;
@@ -81,7 +81,7 @@ public class MinimaxExperiment {
         for (Board boardPosition : testingPositions) {
             int branchingFactor = countPossibleMoves(boardPosition);
             long startTime = System.nanoTime();
-            Action bestMove = minimaxAlgorithm.findBestMove(boardPosition, whitePlayer, depth);
+            Action bestMove = minimaxAlgorithm.findBestMove(boardPosition, GREENPlayer, depth);
             long endTime = System.nanoTime();
 
             branchingExperimentResults.add(new Results.BranchingExperimentResult(
@@ -96,15 +96,15 @@ public class MinimaxExperiment {
 
     private Results.GameResult playGameAtDepth(int depth) {
         Board boardPosition = new Board(5, 2); // Assuming a 5x5 board
-        Player whitePlayer = new MinimaxAgent(Player.Color.WHITE, 21, 1, 1, 3); // Example piece counts
+        Player GREENPlayer = new MinimaxAgent(Player.Color.GREEN, 21, 1, 1, 3); // Example piece counts
         long startTime = System.nanoTime();
-        Action move = minimaxAlgorithm.findBestMove(boardPosition, whitePlayer, depth);
+        Action move = minimaxAlgorithm.findBestMove(boardPosition, GREENPlayer, depth);
         long endTime = System.nanoTime();
 
         return new Results.GameResult(
             depth,
             (endTime - startTime) / 1_000_000.0,
-            evaluationFunction.evaluate(boardPosition, whitePlayer),
+            evaluationFunction.evaluate(boardPosition, GREENPlayer),
             estimateNodesExplored(depth)
         );
     }
@@ -114,13 +114,13 @@ public class MinimaxExperiment {
         Board board = new Board(5); // Placeholder board setup
         long startTime = System.nanoTime();
         // Implement minimax with time constraint
-        Action move = minimaxAlgorithm.findBestMoveWithTimeLimit(board, whitePlayer, timeConstraint);
+        Action move = minimaxAlgorithm.findBestMoveWithTimeLimit(board, GREENPlayer, timeConstraint);
         long endTime = System.nanoTime();
 
         return new Results.GameResult(
             -1, // Depth unknown in time-constrained games
             (endTime - startTime) / 1_000_000.0,
-            evaluationFunction.evaluate(board, Player.Color.WHITE),
+            evaluationFunction.evaluate(board, Player.Color.GREEN),
             estimateNodesExploredBasedOnTime((endTime - startTime) / 1_000_000.0)
         );
     }
