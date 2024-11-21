@@ -27,7 +27,7 @@ public class MiniMaxAlgorithm2 implements Serializable {
     private final int maxDepth;
     private final Player aiPlayer;
     private Map<String, Double> transpositionTable;
-    private final long timeLimitMillis = 2000;
+    private final long timeLimitMillis = 20000;
     private long startTime;
 
     /**
@@ -62,7 +62,7 @@ public class MiniMaxAlgorithm2 implements Serializable {
         // Generate all possible moves from the current state at depth 0
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, player);
-        MoveOrderingHeuristics.orderMoves(possibleActions, board, player, evalFunction);
+        //MoveOrderingHeuristics.orderMoves(possibleActions, board, player, evalFunction);
     
         // Initialize variables to track time limit and best move
         boolean timeLimitExceeded = false;
@@ -79,7 +79,7 @@ public class MiniMaxAlgorithm2 implements Serializable {
                 action.execute(boardAfterAction);
                 double moveValue = minimax(boardAfterAction, maxDepth - 1, false, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, player, currentMoveCount + 1);
     
-                Logger.log("MinimaxAlgorithm", "Depth 0 | Evaluated move: " + action + " | Score: " + moveValue);
+                //Logger.log("MinimaxAlgorithm", "Depth 0 | Evaluated move: " + action + " | Score: " + moveValue);
     
                 if (moveValue > bestValue || bestAction == null) {
                     bestValue = moveValue;
@@ -137,7 +137,7 @@ public class MiniMaxAlgorithm2 implements Serializable {
         Player currentPlayer = isMaximizing ? player : player.getOpponent();
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, currentPlayer, moveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, currentPlayer);
-        MoveOrderingHeuristics.orderMoves(possibleActions, board, currentPlayer, evalFunction);
+        //MoveOrderingHeuristics.orderMoves(possibleActions, board, currentPlayer, evalFunction);
 
         if (isMaximizing) {
             double maxEval = Double.NEGATIVE_INFINITY;
