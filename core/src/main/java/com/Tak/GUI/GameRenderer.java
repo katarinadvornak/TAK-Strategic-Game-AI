@@ -97,7 +97,7 @@ public class GameRenderer {
 
         // Capstone: Cone with increased base diameter and increased height
         capstoneModel = modelBuilder.createCone(0.6f, 0.4f, 0.6f, 32,
-            new Material(ColorAttribute.createDiffuse(Color.RED)),
+            new Material(ColorAttribute.createDiffuse(Color.LIGHT_GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         pieceInstances = new Array<>();

@@ -443,8 +443,8 @@ public class UIManager {
             standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
             standingStoneImage.invalidate();
         }
-        // Update capstone color to always be red
-        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", Color.RED)));
+        // Update capstone color to always be ...
+        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
         capstoneImage.invalidate();
 
         // Update the piece count labels
@@ -458,11 +458,11 @@ public class UIManager {
      */
     public void updatePlayerScores() {
         // Retrieve scores from players
-        int playerBlackScore = takGame.getPlayer1().getScore();
+        int playerBLUEScore = takGame.getPlayer1().getScore();
         int playerGREENScore = takGame.getPlayer2().getScore();
 
         // Update score labels
-        playerBLUEScoreLabel.setText("Score: " + playerBlackScore);
+        playerBLUEScoreLabel.setText("Score: " + playerBLUEScore);
         playerGREENScoreLabel.setText("Score: " + playerGREENScore);
     }
 
