@@ -113,8 +113,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         // After setting up UI elements
         uiManager.updateHotbarColors();
 
-        // Initialize ShapeRenderer for the selection arrow
-        shapeRenderer = new ShapeRenderer();
     }
 
     /**
@@ -182,11 +180,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         // Render the game
         renderer.render();
 
-        // Render the selection arrow if a piece is selected
-        if (selectedPieceType != null) {
-            renderSelectionArrow();
-        }
-
         // Update and draw the UI
         uiManager.getStage().act(delta);
         uiManager.getStage().draw();
@@ -239,37 +232,6 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                 }
             }
         }, 0.5f); // 0.5-second delay before AI makes a move
-    }
-
-    /**
-     * Renders a selection arrow indicating the selected piece.
-     */
-    private void renderSelectionArrow() {
-        shapeRenderer.setProjectionMatrix(uiManager.getStage().getCamera().combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(Color.GREEN);
-
-        float x = 0, y = 0;
-        switch (selectedPieceType) {
-            case FLAT_STONE:
-                x = 50;
-                y = 330;
-                break;
-            case STANDING_STONE:
-                x = 50;
-                y = 210;
-                break;
-            case CAPSTONE:
-                x = 50;
-                y = 85;
-                break;
-        }
-
-        // Draw a simple arrow pointing from left to right
-        shapeRenderer.triangle(x, y - 10, x, y + 10, x + 30, y);
-        shapeRenderer.triangle(x + 30, y - 10, x + 30, y + 10, x + 60, y);
-
-        shapeRenderer.end();
     }
 
     @Override
