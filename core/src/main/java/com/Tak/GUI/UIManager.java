@@ -29,7 +29,7 @@ public class UIManager {
     // UI elements
     public TextButton newGameButton, exitButton;
     public Label currentPlayerLabel;
-    public Label playerBlackScoreLabel, playerWhiteScoreLabel;
+    public Label playerBLUEScoreLabel, playerGREENScoreLabel;
     public List<String> movesList;
     public Image normalStoneImage, standingStoneImage, capstoneImage;
     public Table hotbarTable;
@@ -94,7 +94,7 @@ public class UIManager {
 
         // Create cursor and selection textures
         Pixmap cursorPixmap = new Pixmap(1, 20, Pixmap.Format.RGBA8888);
-        cursorPixmap.setColor(Color.WHITE);
+        cursorPixmap.setColor(Color.GREEN);
         cursorPixmap.fill();
         skin.add("cursor", new Texture(cursorPixmap));
         cursorPixmap.dispose();
@@ -137,7 +137,7 @@ public class UIManager {
         // Create and add TextFieldStyle
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
         textFieldStyle.font = skin.getFont("default-font");
-        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.fontColor = Color.GREEN;
         textFieldStyle.cursor = skin.newDrawable("cursor");
         textFieldStyle.selection = skin.newDrawable("selection");
         textFieldStyle.background = skin.newDrawable("textfield-background");
@@ -164,14 +164,14 @@ public class UIManager {
         exitButton = new TextButton("Exit", skin);
 
         // Create small black and white circles for player icons
-        Texture playerBlackTexture = createCircleTexture(Color.BLACK);
-        Texture playerWhiteTexture = createCircleTexture(Color.WHITE);
-        Image playerBlackImage = new Image(new TextureRegionDrawable(new TextureRegion(playerBlackTexture)));
-        Image playerWhiteImage = new Image(new TextureRegionDrawable(new TextureRegion(playerWhiteTexture)));
+        Texture playerBlueTexture = createCircleTexture(Color.BLUE);
+        Texture playerGreenTexture = createCircleTexture(Color.GREEN);
+        Image playerBlueImage = new Image(new TextureRegionDrawable(new TextureRegion(playerBlueTexture)));
+        Image playerGreenImage = new Image(new TextureRegionDrawable(new TextureRegion(playerGreenTexture)));
 
         // Create labels for player scores
-        playerBlackScoreLabel = new Label("Score: 0", skin);
-        playerWhiteScoreLabel = new Label("Score: 0", skin);
+        playerBLUEScoreLabel = new Label("Score: 0", skin);
+        playerGREENScoreLabel = new Label("Score: 0", skin);
 
         // Initialize move list
         movesArray = new ArrayList<>();
@@ -191,13 +191,13 @@ public class UIManager {
         // New Game button
         leftPanel.add(newGameButton).width(120).height(40).row();
 
-        // Player Black info
-        leftPanel.add(playerBlackImage).size(64, 64).row();
-        leftPanel.add(playerBlackScoreLabel).row();
+        // Player Blue info
+        leftPanel.add(playerBlueImage).size(64, 64).row();
+        leftPanel.add(playerBLUEScoreLabel).row();
 
-        // Player White info
-        leftPanel.add(playerWhiteImage).size(64, 64).row();
-        leftPanel.add(playerWhiteScoreLabel).row();
+        // Player Green info
+        leftPanel.add(playerGreenImage).size(64, 64).row();
+        leftPanel.add(playerGREENScoreLabel).row();
 
         // Current Player Label
         leftPanel.add(currentPlayerLabel).padTop(10).row();
@@ -205,9 +205,12 @@ public class UIManager {
         // Move List
         leftPanel.add(movesScrollPane).height(300).width(300).expandY().fillY().row(); // Increased height and width
 
-        // New: Create hotbar panel with piece counters
+        normalStoneCountLabel = new Label("0", skin);
+        standingStoneCountLabel = new Label("0", skin);
+        capstoneCountLabel = new Label("0", skin);
+        
         Table hotbarPanel = new Table();
-        hotbarPanel.defaults().pad(5); // Padding between hotbar items
+        hotbarPanel.defaults().pad(10); // Padding between hotbar items
 
         // Create placeholder shapes for pieces
         normalStoneImage = new Image(new TextureRegionDrawable(createNormalStonePlaceholder()));
@@ -219,27 +222,18 @@ public class UIManager {
         Label standingStoneLabel = new Label("Standing Stone", skin);
         Label capstoneLabel = new Label("Capstone", skin);
 
-        // Initialize new piece count labels
-        normalStoneCountLabel = new Label("Left: 0", skin);
-        standingStoneCountLabel = new Label("Left: 0", skin);
-        capstoneCountLabel = new Label("Left: 0", skin);
-
-        // Add images and labels to hotbar with counts
-        hotbarPanel.add(normalStoneImage).size(50, 50).row();
-        hotbarPanel.add(normalStoneLabel).row();
-        hotbarPanel.add(normalStoneCountLabel).row(); // Add count label
-        hotbarPanel.add(standingStoneImage).size(50, 50).row();
-        hotbarPanel.add(standingStoneLabel).row();
-        hotbarPanel.add(standingStoneCountLabel).row(); // Add count label
-        hotbarPanel.add(capstoneImage).size(50, 50).row();
-        hotbarPanel.add(capstoneLabel).row();
-        hotbarPanel.add(capstoneCountLabel).row(); // Add count label
-
-        // Add hotbar to left panel
-        leftPanel.add(new Label("Hotbar:", skin)).padTop(20).row();
-        leftPanel.add(hotbarPanel).padBottom(10).row();
-
-        // Create UI table
+        // Add images and labels to the hotbar horizontally
+        hotbarPanel.add(normalStoneImage).size(50, 50);
+        hotbarPanel.add(normalStoneLabel).padLeft(5);
+        hotbarPanel.add(normalStoneCountLabel).padLeft(10);
+        hotbarPanel.add(standingStoneImage).size(50, 50).padLeft(20); 
+        hotbarPanel.add(standingStoneLabel).padLeft(5);
+        hotbarPanel.add(standingStoneCountLabel).padLeft(10);
+        hotbarPanel.add(capstoneImage).size(50, 50).padLeft(20);
+        hotbarPanel.add(capstoneLabel).padLeft(5);
+        hotbarPanel.add(capstoneCountLabel).padLeft(10);
+        
+        // Create the main UI table
         Table uiTable = new Table();
         uiTable.setFillParent(true);
 
@@ -254,6 +248,10 @@ public class UIManager {
         // Add left panel aligned to top left
         uiTable.top().left();
         uiTable.add(leftPanel).expandY().fillY().pad(10).left();
+
+        // Add the hotbar to the bottom of the screen
+        uiTable.row(); // Move to a new row
+        uiTable.add(hotbarPanel).expandX().bottom().padTop(20).padBottom(10);
 
         stage.addActor(uiTable);
 
@@ -415,7 +413,7 @@ public class UIManager {
      * Updates the hotbar colors and piece count labels based on the current game state.
      */
     public void updateHotbarColors() {
-        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.WHITE ? Color.WHITE : Color.BLACK;
+        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLUE;
 
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
@@ -444,10 +442,10 @@ public class UIManager {
         if (takGame.getMoveCount() >= 2) {
             standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
             standingStoneImage.invalidate();
-
-            capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
-            capstoneImage.invalidate();
         }
+        // Update capstone color to always be ...
+        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
+        capstoneImage.invalidate();
 
         // Update the piece count labels
         normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
@@ -460,12 +458,12 @@ public class UIManager {
      */
     public void updatePlayerScores() {
         // Retrieve scores from players
-        int playerBlackScore = takGame.getPlayer1().getScore();
-        int playerWhiteScore = takGame.getPlayer2().getScore();
+        int playerBLUEScore = takGame.getPlayer1().getScore();
+        int playerGREENScore = takGame.getPlayer2().getScore();
 
         // Update score labels
-        playerBlackScoreLabel.setText("Score: " + playerBlackScore);
-        playerWhiteScoreLabel.setText("Score: " + playerWhiteScore);
+        playerBLUEScoreLabel.setText("Score: " + playerBLUEScore);
+        playerGREENScoreLabel.setText("Score: " + playerGREENScore);
     }
 
     /**
@@ -512,7 +510,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createNormalStonePlaceholder() {
-        return createNormalStonePlaceholderWithColor(Color.WHITE);
+        return createNormalStonePlaceholderWithColor(Color.GREEN);
     }
 
     /**
@@ -521,7 +519,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createStandingStonePlaceholder() {
-        return createStandingStonePlaceholderWithColor(Color.WHITE);
+        return createStandingStonePlaceholderWithColor(Color.GREEN);
     }
 
     /**
@@ -530,7 +528,7 @@ public class UIManager {
      * @return The generated texture.
      */
     private Texture createCapstonePlaceholder() {
-        return createCapstonePlaceholderWithColor(Color.WHITE);
+        return createCapstonePlaceholderWithColor(Color.GREEN);
     }
 
     /**

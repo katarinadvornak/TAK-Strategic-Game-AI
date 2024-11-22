@@ -24,26 +24,26 @@ public class MiniMaxTest {
         int boardSize = 5; // You can adjust this for larger or smaller boards
 
         // Initialize a simple Tak game with players
-        Player whitePlayer = new RandomAIPlayer(Color.BLACK, 21, 1, 1); // Example piece counts
-        Player blackPlayer = new MinimaxAgent(Color.BLACK, 21, 1, 1, 3);
+        Player GREENPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3); // Example piece counts
+        Player BLUEPlayer = new MinimaxAgent(Color.BLUE, 21, 1, 1, 3);
 
         List<Player> players = new ArrayList<>();
-        players.add(whitePlayer);
-        players.add(blackPlayer);
+        players.add(GREENPlayer);
+        players.add(BLUEPlayer);
 
         // Set opponents for AIPlayers
-        whitePlayer.setOpponent(blackPlayer);
-        blackPlayer.setOpponent(whitePlayer);
+        GREENPlayer.setOpponent(BLUEPlayer);
+        BLUEPlayer.setOpponent(GREENPlayer);
 
         TakGame game = new TakGame(boardSize, players);
 
         try {
              // Display initial message
-        System.out.println("White player (MinimaxAgent) is thinking...");
+        System.out.println("GREEN player (MinimaxAgent) is thinking...");
 
         // Execute the chosen move and continue the game
-        whitePlayer.makeMove(game);
-        blackPlayer.makeMove(game);
+        GREENPlayer.makeMove(game);
+        //BLUEPlayer.makeMove(game);
 
         } catch (InvalidMoveException e) {
             System.err.println("An invalid move was attempted: " + e.getMessage());
@@ -60,9 +60,9 @@ public class MiniMaxTest {
         int currentPlayerIndex = 0;
     
         // Initialize a simple Tak game with players
-        Player minimaxPlayer = new MinimaxAgent(Color.WHITE, 21, 1, 1, 3); // Example piece counts
-        Player randomPlayer = new MinimaxAgent(Color.BLACK, 21, 1, 1,4);
-    
+        Player minimaxPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3); // Example piece counts
+        Player randomPlayer = new RandomAIPlayer(Color.BLUE, 21, 1, 1);
+
         List<Player> players = new ArrayList<>();
         players.add(randomPlayer);
         players.add(minimaxPlayer);

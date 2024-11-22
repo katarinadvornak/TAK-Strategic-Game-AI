@@ -102,8 +102,8 @@ public class TakGame implements Serializable {
     private void initializePlayers(boolean useAI, int aiPlayersCount) {
         if (!useAI || aiPlayersCount == 0) {
             // Add two HumanPlayers
-            Player player1 = new HumanPlayer(Player.Color.BLACK, 15, 6, 1); // Human Player BLACK
-            Player player2 = new HumanPlayer(Player.Color.WHITE, 15, 6, 1); // Human Player WHITE
+            Player player1 = new HumanPlayer(Player.Color.BLUE, 15, 6, 1); // Human Player BLUE
+            Player player2 = new HumanPlayer(Player.Color.GREEN, 15, 6, 1); // Human Player GREEN
             player1.setOpponent(player2);
             player2.setOpponent(player1);
             players.add(player1);
@@ -112,21 +112,21 @@ public class TakGame implements Serializable {
         } else {
             // Add AIPlayers based on aiPlayersCount
             if (aiPlayersCount == 1) {
-                Player player1 = new HumanPlayer(Player.Color.BLACK, 15, 6, 1); // Human Player BLACK
-                QPlayer aiPlayer = new QPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
+                Player player1 = new HumanPlayer(Player.Color.BLUE, 15, 6, 1); // Human Player BLUE
+                QPlayer aiPlayer = new QPlayer(Player.Color.GREEN, 15, 6, 1, true); // AI Player GREEN
                 player1.setOpponent(aiPlayer);
                 aiPlayer.setOpponent(player1);
                 players.add(player1);
                 players.add(aiPlayer);
-                //Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
+                Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
             } else if (aiPlayersCount == 2) {
-                QPlayer aiPlayer1 = new QPlayer(Player.Color.BLACK, 15, 6, 1, true); // AI Player BLACK
-                QPlayer aiPlayer2 = new QPlayer(Player.Color.WHITE, 15, 6, 1, true); // AI Player WHITE
+                QPlayer aiPlayer1 = new QPlayer(Player.Color.BLUE, 15, 6, 1, true); // AI Player BLUE
+                QPlayer aiPlayer2 = new QPlayer(Player.Color.GREEN, 15, 6, 1, true); // AI Player GREEN
                 aiPlayer1.setOpponent(aiPlayer2);
                 aiPlayer2.setOpponent(aiPlayer1);
                 players.add(aiPlayer1);
                 players.add(aiPlayer2);
-                //Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
+                Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
             } else {
                 throw new IllegalArgumentException("aiPlayersCount must be 0, 1, or 2.");
             }
@@ -376,7 +376,7 @@ public class TakGame implements Serializable {
     }
 
     /**
-     * Returns Player1 (Black).
+     * Returns Player1 (BLUE).
      *
      * @return Player1.
      */
@@ -385,7 +385,7 @@ public class TakGame implements Serializable {
     }
 
     /**
-     * Returns Player2 (White).
+     * Returns Player2 (GREEN).
      *
      * @return Player2.
      */

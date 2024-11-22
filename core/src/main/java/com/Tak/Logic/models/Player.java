@@ -15,7 +15,7 @@ import com.Tak.Logic.utils.Logger;
 public abstract class Player implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    public enum Color { BLACK, WHITE }
+    public enum Color { BLUE, GREEN }
 
     private Color color;
     private Player opponent;
