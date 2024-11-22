@@ -90,9 +90,6 @@ public class MiniMaxTest {
                 moveCount++;
                 Logger.log("MiniMaxTest", "Move made successfully. Switching player.");
                 
-                //game.switchPlayer();
-    
-                // Log board state after the move
                 Board board = game.getBoard();
                 board.printBoard();
                 Logger.log("MiniMaxTest", "Board state logged after move " + moveCount);
@@ -128,4 +125,3 @@ public class MiniMaxTest {
         
     }
 }
-

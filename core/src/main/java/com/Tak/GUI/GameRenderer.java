@@ -83,22 +83,26 @@ public class GameRenderer {
         // Position the board at the center, slightly below y=0 to serve as the base
         boardInstance.transform.setToTranslation((boardSize * TILE_SIZE) / 2f, -0.1f, (boardSize * TILE_SIZE) / 2f);
 
-        // **Adjusted Model Sizes for Pieces**
-
         // Flat Stone: Cylinder with increased radius and same height
-        flatStoneModel = modelBuilder.createCylinder(0.6f, 0.1f, 0.6f, 32,
+        flatStoneModel = modelBuilder.createBox(0.5f, 0.1f, 0.5f,
             new Material(ColorAttribute.createDiffuse(Color.GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         // Standing Stone: Box with reduced width and depth, same height
-        standingStoneModel = modelBuilder.createBox(0.5f, 0.3f, 0.5f,
+        standingStoneModel = modelBuilder.createBox(0.5f, 0.5f, 0.1f,
             new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         // Capstone: Cone with increased base diameter and increased height
-        capstoneModel = modelBuilder.createCone(0.6f, 0.4f, 0.6f, 32,
-            new Material(ColorAttribute.createDiffuse(Color.LIGHT_GRAY)),
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        capstoneModel = modelBuilder.createCylinder(
+            0.5f, // radius (increased for a larger base)
+            0.3f, // height (taller for a more imposing structure)
+            0.5f, // depth (same as radius for a symmetrical cylinder)
+            32,   // number of divisions around the circumference
+            new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)), // darker color for realism
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
+        );
+
 
         pieceInstances = new Array<>();
 
