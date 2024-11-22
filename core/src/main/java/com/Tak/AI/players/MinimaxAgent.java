@@ -59,7 +59,7 @@ public class MinimaxAgent extends Player implements Serializable {
             //Logger.debug("MinimaxAgent", this.getColor() + " executed move: " + bestMove.toString());
             game.incrementMoveCount();
             game.checkWinConditions();
-            //game.switchPlayer();
+            game.switchPlayer();
         } else {
             throw new InvalidMoveException("No valid moves available.");
         }
@@ -112,7 +112,7 @@ public class MinimaxAgent extends Player implements Serializable {
 
     @Override
     public int getTotalPiecesLeft() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getTotalPiecesLeft'");
+        return getRemainingPieces(PieceType.FLAT_STONE) + getRemainingPieces(PieceType.STANDING_STONE) + getRemainingPieces(PieceType.CAPSTONE);
     }
+
 }

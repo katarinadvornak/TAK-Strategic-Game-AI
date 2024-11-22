@@ -43,7 +43,7 @@ public class MiniMaxTest {
 
         // Execute the chosen move and continue the game
         whitePlayer.makeMove(game);
-        //blackPlayer.makeMove(game);
+        blackPlayer.makeMove(game);
 
         } catch (InvalidMoveException e) {
             System.err.println("An invalid move was attempted: " + e.getMessage());
@@ -61,7 +61,7 @@ public class MiniMaxTest {
     
         // Initialize a simple Tak game with players
         Player minimaxPlayer = new MinimaxAgent(Color.WHITE, 21, 1, 1, 3); // Example piece counts
-        Player randomPlayer = new RandomAIPlayer(Color.BLACK, 21, 1, 1);
+        Player randomPlayer = new MinimaxAgent(Color.BLACK, 21, 1, 1,4);
     
         List<Player> players = new ArrayList<>();
         players.add(randomPlayer);
@@ -90,7 +90,7 @@ public class MiniMaxTest {
                 moveCount++;
                 Logger.log("MiniMaxTest", "Move made successfully. Switching player.");
                 
-                game.switchPlayer();
+                //game.switchPlayer();
     
                 // Log board state after the move
                 Board board = game.getBoard();

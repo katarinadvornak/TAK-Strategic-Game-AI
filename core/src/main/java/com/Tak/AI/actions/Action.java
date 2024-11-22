@@ -15,7 +15,6 @@ import com.Tak.Logic.models.Player;
  * It serves as an abstract base class for specific action types like Placement and Move.
  */
 public abstract class Action implements Serializable {
-
     private static final long serialVersionUID = 1L;
 
     /**

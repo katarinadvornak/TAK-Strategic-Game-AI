@@ -28,7 +28,6 @@ public class Move extends Action implements Serializable {
     private List<Integer> dropCounts;
     private List<Piece> movedPieces;
     private List<Destination> destinations;
-    private boolean executed;
     private Player.Color playerColor;
 
     /**
@@ -49,7 +48,6 @@ public class Move extends Action implements Serializable {
         this.dropCounts = new ArrayList<>(dropCounts);
         this.movedPieces = new ArrayList<>();
         this.destinations = new ArrayList<>();
-        this.executed = false;
         this.playerColor = playerColor;
     }
 
@@ -89,9 +87,6 @@ public class Move extends Action implements Serializable {
      */
     @Override
     public void execute(Board board) throws InvalidMoveException {
-        if (executed) {
-            throw new InvalidMoveException("Action has already been executed.");
-        }
         Player player = board.getPlayerByColor(playerColor);
         if (player == null) {
             throw new InvalidMoveException("Player with color " + playerColor + " not found on the board.");
@@ -161,7 +156,6 @@ public class Move extends Action implements Serializable {
         if (!movedPieces.isEmpty()) {
             throw new InvalidMoveException("Not all pieces were dropped during the move.");
         }
-        executed = true;
     }
 
     /**
@@ -172,9 +166,6 @@ public class Move extends Action implements Serializable {
      */
     @Override
     public void undo(Board board) throws InvalidMoveException {
-        if (!executed) {
-            throw new InvalidMoveException("Action has not been executed yet.");
-        }
         for (int i = destinations.size() - 1; i >= 0; i--) {
             Destination dest = destinations.get(i);
             PieceStack destStack = board.getBoardStack(dest.getX(), dest.getY());
@@ -202,8 +193,6 @@ public class Move extends Action implements Serializable {
 
         movedPieces.clear();
         destinations.clear();
-        executed = false;
-
         //Logger.debug("Move", "Move action undone for player " + playerColor + " at (" + fromX + ", " + fromY + ").");
     }
 
