@@ -97,7 +97,10 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         // Initialize Renderer
         renderer = new GameRenderer(camera, boardSize, takGame);
         renderer.updatePieceInstances();
-
+    
+        // Initialize ShapeRenderer
+        shapeRenderer = new ShapeRenderer();
+    
         // Initialize UI Manager
         uiManager = new UIManager(takGame, this);
         uiManager.getStage().setViewport(new ScreenViewport());
