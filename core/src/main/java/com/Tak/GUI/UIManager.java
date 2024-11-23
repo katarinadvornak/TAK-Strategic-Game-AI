@@ -414,7 +414,7 @@ public class UIManager {
      */
     public void updateHotbarColors() {
         Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLUE;
-
+    
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
             // First two moves: players place opponent's pieces
@@ -433,11 +433,11 @@ public class UIManager {
             capstoneImage.setVisible(true);
             capstoneCountLabel.setVisible(true);
         }
-
+    
         // Update normal stone color
         normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
         normalStoneImage.invalidate();
-
+    
         // Update standing stone and capstone colors only if they are visible
         if (takGame.getMoveCount() >= 2) {
             standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
@@ -446,12 +446,18 @@ public class UIManager {
         // Update capstone color to always be ...
         capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
         capstoneImage.invalidate();
-
+    
         // Update the piece count labels
         normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
         standingStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
         capstoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
+    
+        // **Disable hotbar buttons if no pieces left**
+        normalStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
+        standingStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
+        capstoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE) > 0 ? Touchable.enabled : Touchable.disabled);
     }
+    
 
     /**
      * Updates the player scores displayed on the UI.

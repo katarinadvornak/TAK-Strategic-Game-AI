@@ -287,7 +287,14 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             showErrorDialog("Only flat stones can be placed in the first two moves.");
             return;
         }
-
+    
+        // Check if the player has remaining stones of the selected type
+        int remainingPieces = takGame.getCurrentPlayer().getRemainingPieces(pieceType);
+        if (remainingPieces <= 0) {
+            showErrorDialog("No remaining " + pieceType.toString().replace("_", " ").toLowerCase() + "s left.");
+            return;
+        }
+    
         if (selectedPieceType == pieceType) {
             // Deselect if already selected
             selectedPieceType = null;
@@ -300,6 +307,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
             Gdx.app.log("GameScreen", "Selected " + pieceType);
         }
     }
+    
 
     /**
      * Updates the UI elements after resetting the game.
