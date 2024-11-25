@@ -54,6 +54,7 @@ public class RandomAIPlayer extends Player {
                 Action action = Action.fromString(actionStr, this.getColor());
                 action.execute(board);
                 board.incrementMoveCount();
+                game.switchPlayer();
                 return; // Successful move
             } catch (InvalidMoveException e) {
                 // Invalid move, try another
