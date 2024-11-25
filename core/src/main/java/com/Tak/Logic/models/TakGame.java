@@ -1,7 +1,7 @@
 // File: core/src/main/java/com/Tak/Logic/models/TakGame.java
 package com.Tak.Logic.models;
 
-import com.Tak.AI.players.QPlayer;
+import com.Tak.AI.players.MinimaxAgent;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.players.HumanPlayer;
@@ -10,6 +10,7 @@ import com.Tak.Logic.validators.MoveExecutor;
 import com.Tak.Logic.validators.MoveValidator;
 import com.Tak.Logic.validators.WinChecker;
 import com.Tak.Logic.managers.GameStateManager;
+import com.Tak.Logic.models.Player.Color;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -102,8 +103,8 @@ public class TakGame implements Serializable {
     private void initializePlayers(boolean useAI, int aiPlayersCount) {
         if (!useAI || aiPlayersCount == 0) {
             // Add two HumanPlayers
-            Player player1 = new HumanPlayer(Player.Color.BLUE, 15, 6, 1); // Human Player BLUE
-            Player player2 = new HumanPlayer(Player.Color.GREEN, 15, 6, 1); // Human Player GREEN
+            Player player1 = new HumanPlayer(Player.Color.BLUE, 21, 21, 1); // Human Player BLUE
+            Player player2 = new HumanPlayer(Player.Color.GREEN, 21, 21, 1); // Human Player GREEN
             player1.setOpponent(player2);
             player2.setOpponent(player1);
             players.add(player1);
@@ -113,15 +114,15 @@ public class TakGame implements Serializable {
             // Add AIPlayers based on aiPlayersCount
             if (aiPlayersCount == 1) {
                 Player player1 = new HumanPlayer(Player.Color.BLUE, 15, 6, 1); // Human Player BLUE
-                QPlayer aiPlayer = new QPlayer(Player.Color.GREEN, 15, 6, 1, true); // AI Player GREEN
+                Player aiPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3); // Example piece counts
                 player1.setOpponent(aiPlayer);
                 aiPlayer.setOpponent(player1);
                 players.add(player1);
                 players.add(aiPlayer);
                 Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
             } else if (aiPlayersCount == 2) {
-                QPlayer aiPlayer1 = new QPlayer(Player.Color.BLUE, 15, 6, 1, true); // AI Player BLUE
-                QPlayer aiPlayer2 = new QPlayer(Player.Color.GREEN, 15, 6, 1, true); // AI Player GREEN
+                Player aiPlayer1 = new MinimaxAgent(Color.BLUE, 21, 1, 1, 3);
+                Player aiPlayer2 = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3);
                 aiPlayer1.setOpponent(aiPlayer2);
                 aiPlayer2.setOpponent(aiPlayer1);
                 players.add(aiPlayer1);
@@ -137,6 +138,7 @@ public class TakGame implements Serializable {
         for (Player p : players) {
             Logger.log("TakGame", p.getClass().getSimpleName() + " - Color: " + p.getColor());
         }
+
     }
 
     /**
@@ -319,9 +321,6 @@ public class TakGame implements Serializable {
             player.resetPieces(21, 1); // Standard Counts
             if (resetScores) {
                 player.resetScore();
-                if (player instanceof QPlayer) {
-                    ((QPlayer) player).resetAI();
-                }
             }
         }
         //Logger.log("TakGame", "Game has been reset. Move count: " + moveCount + ", Game ended: " + isGameEnded);

@@ -1,7 +1,6 @@
 // File: core/src/main/java/com/Tak/GUI/GameScreen.java
 package com.Tak.GUI;
 
-import com.Tak.AI.learning.QLearningAgent;
 import com.Tak.AI.players.MinimaxAgent;
 import com.Tak.GUI.UIManager.DropCountsCallback;
 import com.Tak.Logic.exceptions.GameOverException;
