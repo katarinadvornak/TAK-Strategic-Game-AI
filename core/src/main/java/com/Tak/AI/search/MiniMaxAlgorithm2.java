@@ -4,12 +4,10 @@ package com.Tak.AI.search;
 import com.Tak.AI.actions.Action;
 import com.Tak.AI.evaluation.EvaluationFunction;
 import com.Tak.AI.utils.ActionGenerator;
+import com.Tak.AI.utils.MoveOrderingHeuristics;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
-import com.Tak.Logic.models.Piece;
-import com.Tak.Logic.models.PieceStack;
 import com.Tak.Logic.models.Player;
-import com.Tak.Logic.utils.Logger;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -34,21 +32,27 @@ public class MiniMaxAlgorithm2 implements Serializable {
     // Complexity metrics
     private int nodesEvaluated;
     private long timeTakenMillis;
+    private int pruneCount; // Counts how many times pruning occurred
+
+    public boolean useMoveOrdering; // Flag to enable/disable move ordering
 
     /**
-     * Constructs a MinimaxAlgorithm with the specified evaluation function, maximum depth, and AI player.
+     * Constructs a MinimaxAlgorithm with the specified evaluation function, maximum depth, AI player, and move ordering option.
      *
-     * @param evalFunction The evaluation function to assess board states.
-     * @param maxDepth     The maximum search depth.
-     * @param aiPlayer     The AIPlayer instance.
+     * @param evalFunction     The evaluation function to assess board states.
+     * @param maxDepth         The maximum search depth.
+     * @param aiPlayer         The AIPlayer instance.
+     * @param useMoveOrdering  Flag to enable or disable move ordering.
      */
-    public MiniMaxAlgorithm2(EvaluationFunction evalFunction, int maxDepth, Player aiPlayer) {
+    public MiniMaxAlgorithm2(EvaluationFunction evalFunction, int maxDepth, Player aiPlayer, boolean useMoveOrdering) {
         this.evalFunction = evalFunction;
         this.maxDepth = maxDepth;
         this.aiPlayer = aiPlayer;
         this.transpositionTable = new HashMap<>();
         this.nodesEvaluated = 0;
         this.timeTakenMillis = 0;
+        this.pruneCount = 0;
+        this.useMoveOrdering = useMoveOrdering;
     }
 
     /**
@@ -65,20 +69,22 @@ public class MiniMaxAlgorithm2 implements Serializable {
         double bestValue = Double.NEGATIVE_INFINITY;
         startTime = System.currentTimeMillis();
         nodesEvaluated = 0; // Reset node count
-
-        //Logger.log("MinimaxAlgorithm", "Starting search from the root (depth 0)");
+        pruneCount = 0; // Reset prune count
 
         // Generate all possible moves from the current state at depth 0
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, player);
-        //MoveOrderingHeuristics.orderMoves(possibleActions, board, player, evalFunction);
+
+        // Order moves if enabled
+        if (useMoveOrdering) {
+            MoveOrderingHeuristics.orderMoves(possibleActions, board, player, evalFunction, true); // Root node is maximizing
+        }
 
         // Initialize variables to track time limit and best move
         boolean timeLimitExceeded = false;
 
         for (Action action : possibleActions) {
             if (System.currentTimeMillis() - startTime > timeLimitMillis) {
-                //Logger.log("MinimaxAlgorithm", "Time limit exceeded before evaluating all moves at depth 0");
                 timeLimitExceeded = true;
                 break;
             }
@@ -88,25 +94,20 @@ public class MiniMaxAlgorithm2 implements Serializable {
                 action.execute(boardAfterAction);
                 double moveValue = minimax(boardAfterAction, maxDepth - 1, false, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, player, currentMoveCount + 1);
 
-                //Logger.log("MinimaxAlgorithm", "Depth 0 | Evaluated move: " + action + " | Score: " + moveValue);
-
                 if (moveValue > bestValue || bestAction == null) {
                     bestValue = moveValue;
                     bestAction = action;
                 }
             } catch (InvalidMoveException e) {
-                //Logger.log("MinimaxAlgorithm", "Invalid move encountered at depth 0: " + action);
                 continue;
             } catch (InterruptedException e) {
-                //Logger.log("MinimaxAlgorithm", "Time limit exceeded during minimax.");
                 timeLimitExceeded = true;
                 break;
             }
         }
 
         if (bestAction == null) {
-            // If no best action was found, select a fallback move
-            //Logger.log("MinimaxAlgorithm", "No valid moves found within time limit. Selecting a random move.");
+            // Fallback move selection
             if (!possibleActions.isEmpty()) {
                 bestAction = possibleActions.get(0); // Choose the first available move
             } else {
@@ -115,8 +116,6 @@ public class MiniMaxAlgorithm2 implements Serializable {
         }
 
         timeTakenMillis = System.currentTimeMillis() - startTime;
-        //Logger.log("MinimaxAlgorithm", "Final best move at depth 0: " + bestAction + " | Score: " + bestValue);
-        //Logger.log("MinimaxAlgorithm", "Nodes evaluated: " + nodesEvaluated + " | Time taken: " + timeTakenMillis + " ms");
         return bestAction;
     }
 
@@ -139,37 +138,41 @@ public class MiniMaxAlgorithm2 implements Serializable {
 
         nodesEvaluated++; // Increment node count
 
-        if (depth == 0 || board.isFull() || evalFunction.evaluate(board, aiPlayer) == Double.POSITIVE_INFINITY || evalFunction.evaluate(board, aiPlayer) == Double.NEGATIVE_INFINITY) {
-            double eval = evalFunction.evaluate(board, aiPlayer);
-            //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Leaf node evaluated with score: " + eval);
-            return eval;
+        // Terminal condition
+        double currentEval = evalFunction.evaluate(board, aiPlayer);
+        if (depth == 0 || board.isFull() || currentEval == Double.POSITIVE_INFINITY || currentEval == Double.NEGATIVE_INFINITY) {
+            return currentEval;
         }
-
-        //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Evaluating " + (isMaximizing ? "maximizing" : "minimizing") + " player.");
 
         Player currentPlayer = isMaximizing ? player : player.getOpponent();
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, currentPlayer, moveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, currentPlayer);
-        //MoveOrderingHeuristics.orderMoves(possibleActions, board, currentPlayer, evalFunction);
+
+        // Order moves if enabled
+        if (useMoveOrdering) {
+            MoveOrderingHeuristics.orderMoves(possibleActions, board, currentPlayer, evalFunction, isMaximizing);
+        }
 
         if (isMaximizing) {
             double maxEval = Double.NEGATIVE_INFINITY;
             for (Action action : possibleActions) {
+                if (System.currentTimeMillis() - startTime > timeLimitMillis) {
+                    throw new InterruptedException("Time limit exceeded during minimax.");
+                }
+
                 Board boardAfterAction = board.copy();
                 try {
                     action.execute(boardAfterAction);
                     double eval = minimax(boardAfterAction, depth - 1, false, alpha, beta, player, moveCount + 1);
+
                     maxEval = Math.max(maxEval, eval);
                     alpha = Math.max(alpha, eval);
 
-                    //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Maximizing move: " + action + " | Score: " + eval);
-
                     if (beta <= alpha) {
-                        //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Pruning occurs (alpha: " + alpha + ", beta: " + beta + ")");
+                        pruneCount++;
                         break;
                     }
                 } catch (InvalidMoveException e) {
-                    //Logger.log("MinimaxAlgorithm", "Invalid move encountered at depth " + (maxDepth - depth) + ": " + action);
                     continue;
                 }
             }
@@ -177,17 +180,20 @@ public class MiniMaxAlgorithm2 implements Serializable {
         } else {
             double minEval = Double.POSITIVE_INFINITY;
             for (Action action : possibleActions) {
+                if (System.currentTimeMillis() - startTime > timeLimitMillis) {
+                    throw new InterruptedException("Time limit exceeded during minimax.");
+                }
+
                 Board boardAfterAction = board.copy();
                 try {
                     action.execute(boardAfterAction);
                     double eval = minimax(boardAfterAction, depth - 1, true, alpha, beta, player, moveCount + 1);
+
                     minEval = Math.min(minEval, eval);
                     beta = Math.min(beta, eval);
 
-                    //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Minimizing move: " + action + " | Score: " + eval);
-
                     if (beta <= alpha) {
-                        //Logger.log("MinimaxAlgorithm", "Depth " + (maxDepth - depth) + " | Pruning occurs (alpha: " + alpha + ", beta: " + beta + ")");
+                        pruneCount++;
                         break;
                     }
                 } catch (InvalidMoveException e) {
@@ -219,35 +225,6 @@ public class MiniMaxAlgorithm2 implements Serializable {
     }
 
     /**
-     * Generates a unique hash for the board state including player turn.
-     *
-     * @param board         The game board.
-     * @param isMaximizing  Indicates if the current layer is maximizing.
-     * @return A unique string representing the board state.
-     */
-    private String generateStateHash(Board board, boolean isMaximizing) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(isMaximizing ? "Max_" : "Min_");
-
-        for (int y = 0; y < board.getSize(); y++) {
-            for (int x = 0; x < board.getSize(); x++) {
-                PieceStack stack = board.getBoardStack(x, y);
-                if (stack.isEmpty()) {
-                    sb.append("E");
-                } else {
-                    Piece topPiece = stack.getTopPiece();
-                    sb.append(topPiece.getPieceType().toString().charAt(0));
-                    sb.append(topPiece.getOwner().getColor().toString().charAt(0));
-                    sb.append(stack.size());
-                }
-                sb.append(",");
-            }
-            sb.append(";");
-        }
-        return sb.toString();
-    }
-
-    /**
      * Clears the transposition table, useful when resetting the AI or starting a new game.
      */
     public void clearTranspositionTable() {
@@ -270,5 +247,14 @@ public class MiniMaxAlgorithm2 implements Serializable {
      */
     public long getTimeTakenMillis() {
         return timeTakenMillis;
+    }
+
+    /**
+     * Retrieves the number of times alpha-beta pruning occurred during the last search.
+     *
+     * @return The number of pruning events.
+     */
+    public int getPruneCount() {
+        return pruneCount;
     }
 }

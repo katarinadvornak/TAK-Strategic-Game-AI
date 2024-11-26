@@ -1,4 +1,4 @@
-// File: com/Tak/AI/Test/ComplexityAnalysisTest.java
+// File: com/Tak/AI/experiments/ComplexityAnalysisTest.java
 package com.Tak.AI.experiments;
 
 import com.Tak.AI.players.MinimaxAgent;
@@ -9,115 +9,297 @@ import com.Tak.Logic.models.Player;
 import com.Tak.Logic.models.TakGame;
 import com.Tak.Logic.models.Player.Color;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
- * ComplexityAnalysisTest runs multiple games between MinimaxAgent and RandomAIPlayer
- * across different search depths and board sizes, collecting complexity metrics.
+ * ComplexityAnalysisTest runs multiple games between MinimaxAgents and RandomAIPlayers
+ * across different search depths and board sizes, collecting complexity metrics and win rates.
  */
 public class ComplexityAnalysisTest {
 
     /**
-     * Runs a series of games between MinimaxAgent and RandomAIPlayer at various depths and board sizes.
+     * Represents a single experiment configuration and its results.
      */
-    public static void runExtendedAnalysis() {
-        int[] boardSizes = {4,5,6,7}; // Different board sizes
-        int[] depths = {1,2,3,4}; // Different search depths
-        int gamesPerDepth = 10; // Number of games per depth
+    static class ExperimentResult {
+        int boardSize;
+        int minimaxDepth1; // Depth for MinimaxAgent1
+        int minimaxDepth2; // Depth for MinimaxAgent2 (only for Minimax vs Minimax)
+        boolean moveOrdering;
+        String opponentType; // e.g., "Minimax vs RandomAI" or "Minimax vs Minimax"
 
+        int minimaxWins;
+        int randomAIWins;
+        int minimax2Wins;
+        int draws;
+
+        long totalNodesEvaluated;
+        long totalTimeTakenMillis;
+        int totalPruningEvents;
+
+        int gamesRun;
+
+        public ExperimentResult(int boardSize, int minimaxDepth1, int minimaxDepth2, boolean moveOrdering, String opponentType) {
+            this.boardSize = boardSize;
+            this.minimaxDepth1 = minimaxDepth1;
+            this.minimaxDepth2 = minimaxDepth2;
+            this.moveOrdering = moveOrdering;
+            this.opponentType = opponentType;
+
+            this.minimaxWins = 0;
+            this.randomAIWins = 0;
+            this.minimax2Wins = 0;
+            this.draws = 0;
+
+            this.totalNodesEvaluated = 0;
+            this.totalTimeTakenMillis = 0;
+            this.totalPruningEvents = 0;
+
+            this.gamesRun = 0;
+        }
+
+        /**
+         * Updates the result based on the game outcome and metrics.
+         */
+        public void updateResult(Player winner, long nodesEvaluated, long timeTaken, int pruningEvents) {
+            if (winner == null) {
+                this.draws++;
+            } else if (opponentType.equals("Minimax vs RandomAI") && winner instanceof MinimaxAgent) {
+                this.minimaxWins++;
+            } else if (opponentType.equals("Minimax vs RandomAI") && winner instanceof RandomAIPlayer) {
+                this.randomAIWins++;
+            } else if (opponentType.equals("Minimax vs Minimax") && winner instanceof MinimaxAgent) {
+                // Determine which MinimaxAgent won based on color
+                MinimaxAgent winnerAgent = (MinimaxAgent) winner;
+                if (winnerAgent.getColor() == Color.GREEN) {
+                    this.minimaxWins++;
+                } else if (winnerAgent.getColor() == Color.BLUE) {
+                    this.minimax2Wins++;
+                }
+            }
+
+            this.totalNodesEvaluated += nodesEvaluated;
+            this.totalTimeTakenMillis += timeTaken;
+            this.totalPruningEvents += pruningEvents;
+            this.gamesRun++;
+        }
+
+        /**
+         * Formats the experiment result for display.
+         */
+        @Override
+        public String toString() {
+            double avgNodes = gamesRun > 0 ? (double) totalNodesEvaluated / gamesRun : 0.0;
+            double avgTime = gamesRun > 0 ? (double) totalTimeTakenMillis / gamesRun : 0.0;
+            double avgPrunes = gamesRun > 0 ? (double) totalPruningEvents / gamesRun : 0.0;
+
+            String results;
+            if (opponentType.equals("Minimax vs RandomAI")) {
+                results = String.format(
+                    "Results -> Minimax Wins: %d | RandomAI Wins: %d | Draws: %d\n",
+                    minimaxWins, randomAIWins, draws
+                );
+            } else if (opponentType.equals("Minimax vs Minimax")) {
+                results = String.format(
+                    "Results -> Minimax1 (Depth %d) Wins: %d | Minimax2 (Depth %d) Wins: %d | Draws: %d\n",
+                    minimaxDepth1, minimaxWins, minimaxDepth2, minimax2Wins, draws
+                );
+            } else {
+                results = "Results -> Undefined Opponent Type\n";
+            }
+
+            return String.format(
+                "Board Size: %dx%d | Minimax Depth1: %d | Minimax Depth2: %d | Move Ordering: %b | Opponent Type: %s\n" +
+                "%s" +
+                "Avg Nodes Evaluated: %.2f | Avg Time Taken: %.2fms | Avg Pruning Events: %.2f\n",
+                boardSize, boardSize,
+                minimaxDepth1,
+                minimaxDepth2,
+                moveOrdering,
+                opponentType,
+                results,
+                avgNodes,
+                avgTime,
+                avgPrunes
+            );
+        }
+    }
+
+    /**
+     * Runs multiple games between MinimaxAgents and RandomAIPlayers or between two MinimaxAgents
+     * across different configurations, collecting complexity metrics and win rates.
+     */
+    public void runExperiments() {
+        // Define experiment parameters
+        int[] boardSizes = {4,5,6}; // Add more sizes as needed (e.g., 3, 5, 7)
+        int[] minimaxDepths = {1, 2, 3}; // Different search depths
+        boolean moveOrdering = false; // Move Ordering: Disabled as per instruction
+        int gamesPerConfigurationRandomAI = 10; // Number of games per configuration for Minimax vs RandomAI
+        int gamesPerConfigurationMinimax = 1; // Number of games per configuration for Minimax vs Minimax
+
+        // List to hold all experiment results
+        List<ExperimentResult> results = new ArrayList<>();
+
+        // --- Experiments: MinimaxAgent vs RandomAIPlayer ---
+        String opponentTypeRandomAI = "Minimax vs RandomAI";
         for (int boardSize : boardSizes) {
-            for (int depth : depths) {
-                System.out.println("========================================");
-                System.out.println("Analyzing Minimax Depth: " + depth + " on " + boardSize + "x" + boardSize + " board");
-                System.out.println("========================================");
+            for (int depth : minimaxDepths) {
+                ExperimentResult expResultRandomAI = new ExperimentResult(boardSize, depth, 0, moveOrdering, opponentTypeRandomAI);
 
-                // Initialize players
-                MinimaxAgent minimaxPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, depth);
-                RandomAIPlayer randomPlayer = new RandomAIPlayer(Color.BLUE, 21, 1, 1);
+                for (int gameNum = 1; gameNum <= gamesPerConfigurationRandomAI; gameNum++) {
+                    System.out.println("Running Game " + gameNum + " | Board Size: " + boardSize + "x" + boardSize +
+                                       " | Minimax Depth: " + depth + " | Move Ordering: " + moveOrdering +
+                                       " | Opponent Type: " + opponentTypeRandomAI);
 
-                // Set opponents
-                minimaxPlayer.setOpponent(randomPlayer);
-                randomPlayer.setOpponent(minimaxPlayer);
+                    // Initialize players
+                    Player minimaxPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, depth, moveOrdering);
+                    Player randomAIPlayer = new RandomAIPlayer(Color.BLUE, 21, 1, 1);
 
-                // Initialize TakGame with the two players
-                List<Player> players = new ArrayList<>();
-                players.add(randomPlayer); // Player 0: RandomAIPlayer
-                players.add(minimaxPlayer); // Player 1: MinimaxAgent
-                TakGame game = new TakGame(boardSize, players);
+                    // Set opponents
+                    minimaxPlayer.setOpponent(randomAIPlayer);
+                    randomAIPlayer.setOpponent(minimaxPlayer);
 
-                // Metrics to collect
-                int minimaxWins = 0;
-                int randomWins = 0;
-                int draws = 0;
-                int totalNodesEvaluated = 0;
-                long totalTimeTaken = 0;
+                    // Initialize TakGame with the players (MinimaxAgent starts first)
+                    TakGame game = new TakGame(boardSize, List.of(minimaxPlayer, randomAIPlayer));
 
-                // Run multiple games per depth
-                for (int gameNum = 1; gameNum <= gamesPerDepth; gameNum++) {
-                    System.out.println("Starting Game " + gameNum + " for depth " + depth + " on " + boardSize + "x" + boardSize + " board");
-                    game.resetGame(false); // Reset the game without resetting player scores
+                    // Log starting player
+                    System.out.println("Starting Player: " + game.getCurrentPlayer().getColor());
 
+                    // Run the game loop
                     try {
                         while (!game.isGameEnded()) {
                             Player currentPlayer = game.getCurrentPlayer();
                             currentPlayer.makeMove(game);
                         }
 
+                        // Determine the winner
                         Player winner = game.getWinner();
+
+                        // Collect metrics from MinimaxAgent
+                        long nodesEvaluated = (minimaxPlayer instanceof MinimaxAgent) ? 
+                                               ((MinimaxAgent) minimaxPlayer).getNodesEvaluated() : 0;
+                        long timeTaken = (minimaxPlayer instanceof MinimaxAgent) ? 
+                                         ((MinimaxAgent) minimaxPlayer).getTimeTakenMillis() : 0;
+                        int pruningEvents = (minimaxPlayer instanceof MinimaxAgent) ? 
+                                             ((MinimaxAgent) minimaxPlayer).getPruneCount() : 0;
+
+                        // Update experiment results
+                        expResultRandomAI.updateResult(winner, nodesEvaluated, timeTaken, pruningEvents);
+
+                        // Log game result
                         if (winner == null) {
-                            draws++;
-                            System.out.println("Game " + gameNum + " ended in a draw.");
-                        } else if (winner instanceof MinimaxAgent) {
-                            minimaxWins++;
-                            System.out.println("Game " + gameNum + " won by MinimaxAgent.");
-                        } else if (winner instanceof RandomAIPlayer) {
-                            randomWins++;
-                            System.out.println("Game " + gameNum + " won by RandomAIPlayer.");
+                            System.out.println("Result: Draw\n");
+                        } else if (winner.equals(minimaxPlayer)) {
+                            System.out.println("Result: MinimaxAgent (GREEN) Wins\n");
+                        } else if (winner.equals(randomAIPlayer)) {
+                            System.out.println("Result: RandomAIPlayer (BLUE) Wins\n");
                         }
 
-                        // Collect complexity metrics from MinimaxAgent
-                        totalNodesEvaluated += minimaxPlayer.getNodesEvaluated();
-                        totalTimeTaken += minimaxPlayer.getTimeTakenMillis();
-
-                        // Print the final board state
-                        //System.out.println("Final Board State for Game " + gameNum + ":");
-                        //game.getBoard().printBoard();
-                        System.out.println(); // Add a blank line for readability
-
                     } catch (InvalidMoveException e) {
-                        System.err.println("Game " + gameNum + " encountered an invalid move: " + e.getMessage());
+                        System.err.println("InvalidMoveException: " + e.getMessage() + "\n");
                     } catch (GameOverException e) {
-                        System.out.println("Game " + gameNum + " detected game over: " + e.getMessage());
+                        System.out.println("GameOverException: " + e.getMessage() + "\n");
                     } catch (Exception e) {
-                        System.err.println("Game " + gameNum + " encountered an unexpected error: " + e.getMessage());
+                        System.err.println("Unexpected Exception: " + e.getMessage() + "\n");
                     }
                 }
 
-                // Calculate average metrics
-                double averageNodes = (double) totalNodesEvaluated / gamesPerDepth;
-                double averageTime = (double) totalTimeTaken / gamesPerDepth;
-
-                // Output summarized results
-                System.out.println("\n=== Complexity Analysis Summary for Minimax Depth " + depth + " on " + boardSize + "x" + boardSize + " Board ===");
-                System.out.println("Total Games Run       : " + gamesPerDepth);
-                System.out.println("MinimaxAgent Wins     : " + minimaxWins);
-                System.out.println("RandomAIPlayer Wins   : " + randomWins);
-                System.out.println("Draws                 : " + draws);
-                System.out.printf("Average Nodes Evaluated: %.2f%n", averageNodes);
-                System.out.printf("Average Time Taken     : %.2f ms%n", averageTime);
-                System.out.println("=====================================================\n");
+                // Add the experiment result to the list
+                results.add(expResultRandomAI);
             }
         }
 
+        // --- Experiments: MinimaxAgent vs MinimaxAgent ---
+        String opponentTypeMinimax = "Minimax vs Minimax";
+        for (int boardSize : boardSizes) {
+            for (int depth1 : minimaxDepths) {
+                for (int depth2 : minimaxDepths) {
+                    // Avoid redundant experiments where both depths are the same if desired
+                    // Uncomment the following line to skip identical depth pairings
+                    // if (depth1 == depth2) continue;
+
+                    ExperimentResult expResultMinimax = new ExperimentResult(boardSize, depth1, depth2, moveOrdering, opponentTypeMinimax);
+
+                    for (int gameNum = 1; gameNum <= gamesPerConfigurationMinimax; gameNum++) {
+                        System.out.println("Running Game " + gameNum + " | Board Size: " + boardSize + "x" + boardSize +
+                                           " | Minimax Depth1: " + depth1 + " | Minimax Depth2: " + depth2 +
+                                           " | Move Ordering: " + moveOrdering +
+                                           " | Opponent Type: " + opponentTypeMinimax);
+
+                        // Initialize players with different depths
+                        Player minimaxPlayer1 = new MinimaxAgent(Color.GREEN, 21, 1, 1, depth1, moveOrdering);
+                        Player minimaxPlayer2 = new MinimaxAgent(Color.BLUE, 21, 1, 1, depth2, moveOrdering);
+
+                        // Set opponents
+                        minimaxPlayer1.setOpponent(minimaxPlayer2);
+                        minimaxPlayer2.setOpponent(minimaxPlayer1);
+
+                        // Initialize TakGame with the players (MinimaxAgent1 starts first)
+                        TakGame game = new TakGame(boardSize, List.of(minimaxPlayer1, minimaxPlayer2));
+
+                        // Log starting player
+                        System.out.println("Starting Player: " + game.getCurrentPlayer().getColor());
+
+                        // Run the game loop
+                        try {
+                            while (!game.isGameEnded()) {
+                                Player currentPlayer = game.getCurrentPlayer();
+                                currentPlayer.makeMove(game);
+                            }
+
+                            // Determine the winner
+                            Player winner = game.getWinner();
+
+                            // Collect metrics from MinimaxAgent1
+                            long nodesEvaluated = (minimaxPlayer1 instanceof MinimaxAgent) ? 
+                                                   ((MinimaxAgent) minimaxPlayer1).getNodesEvaluated() : 0;
+                            long timeTaken = (minimaxPlayer1 instanceof MinimaxAgent) ? 
+                                             ((MinimaxAgent) minimaxPlayer1).getTimeTakenMillis() : 0;
+                            int pruningEvents = (minimaxPlayer1 instanceof MinimaxAgent) ? 
+                                                 ((MinimaxAgent) minimaxPlayer1).getPruneCount() : 0;
+
+                            // Update experiment results
+                            expResultMinimax.updateResult(winner, nodesEvaluated, timeTaken, pruningEvents);
+
+                            // Log game result
+                            if (winner == null) {
+                                System.out.println("Result: Draw\n");
+                            } else if (winner.equals(minimaxPlayer1)) {
+                                System.out.println("Result: MinimaxAgent1 (GREEN) Wins\n");
+                            } else if (winner.equals(minimaxPlayer2)) {
+                                System.out.println("Result: MinimaxAgent2 (BLUE) Wins\n");
+                            }
+
+                        } catch (InvalidMoveException e) {
+                            System.err.println("InvalidMoveException: " + e.getMessage() + "\n");
+                        } catch (GameOverException e) {
+                            System.out.println("GameOverException: " + e.getMessage() + "\n");
+                        } catch (Exception e) {
+                            System.err.println("Unexpected Exception: " + e.getMessage() + "\n");
+                        }
+                    }
+
+                    // Add the experiment result to the list
+                    results.add(expResultMinimax);
+                }
+            }
+        }
+
+        // Display all experiment results
+        System.out.println("=============== Complexity Analysis Results ===============");
+        for (ExperimentResult res : results) {
+            System.out.println(res.toString());
+        }
+        System.out.println("===========================================================");
     }
 
     /**
-     * The main method to execute the extended complexity analysis test.
+     * The main method to execute the complexity analysis test.
      *
      * @param args Command-line arguments (not used).
      */
     public static void main(String[] args) {
-        runExtendedAnalysis();
+        ComplexityAnalysisTest test = new ComplexityAnalysisTest();
+        test.runExperiments();
     }
 }

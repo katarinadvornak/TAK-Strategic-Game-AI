@@ -11,7 +11,6 @@ import com.Tak.Logic.models.Piece.PieceType;
 import com.Tak.Logic.models.Player;
 import com.Tak.Logic.models.TakGame;
 import com.Tak.Logic.models.Player.Color;
-import com.Tak.Logic.utils.Logger;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -26,20 +25,35 @@ public class MinimaxAgent extends Player implements Serializable {
     private int maxDepth;
 
     /**
-     * Constructs a MinimaxAgent with specified parameters.
+     * Constructs a MinimaxAgent with specified parameters and move ordering option.
      *
-     * @param color          The color of the player.
-     * @param flatStones     Number of flat stones.
-     * @param standingStones Number of standing stones.
-     * @param capstones      Number of capstones.
-     * @param maxDepth       The maximum depth for the Minimax search.
+     * @param color            The color of the player.
+     * @param flatStones       Number of flat stones.
+     * @param standingStones   Number of standing stones.
+     * @param capstones        Number of capstones.
+     * @param maxDepth         The maximum depth for the Minimax search.
+     * @param useMoveOrdering  Flag to enable or disable move ordering.
      */
     public MinimaxAgent(Color color, int flatStones, int standingStones,
-                        int capstones, int maxDepth) {
+                        int capstones, int maxDepth, boolean useMoveOrdering) {
         super(color, flatStones, capstones);
         this.evaluationFunction = new EvaluationFunction();
         this.maxDepth = maxDepth;
-        this.minimaxAlgorithm = new MiniMaxAlgorithm2(evaluationFunction, maxDepth, this);
+        this.minimaxAlgorithm = new MiniMaxAlgorithm2(evaluationFunction, maxDepth, this, useMoveOrdering);
+    }
+
+    /**
+     * Alternative constructor with move ordering enabled by default.
+     *
+     * @param color            The color of the player.
+     * @param flatStones       Number of flat stones.
+     * @param standingStones   Number of standing stones.
+     * @param capstones        Number of capstones.
+     * @param maxDepth         The maximum depth for the Minimax search.
+     */
+    public MinimaxAgent(Color color, int flatStones, int standingStones,
+                        int capstones, int maxDepth) {
+        this(color, flatStones, standingStones, capstones, maxDepth, true);
     }
 
     /**
@@ -56,7 +70,6 @@ public class MinimaxAgent extends Player implements Serializable {
 
         if (bestMove != null) {
             bestMove.execute(board);
-            //Logger.debug("MinimaxAgent", this.getColor() + " executed move: " + bestMove.toString());
             game.incrementMoveCount();
             game.checkWinConditions();
             game.switchPlayer();
@@ -73,10 +86,11 @@ public class MinimaxAgent extends Player implements Serializable {
     @Override
     public Player copy() {
         return new MinimaxAgent(this.getColor(),
-                                this.getRemainingPieces(PieceType.FLAT_STONE),
-                                this.getRemainingPieces(PieceType.STANDING_STONE),
-                                this.getRemainingPieces(PieceType.CAPSTONE),
-                                this.maxDepth);
+                this.getRemainingPieces(PieceType.FLAT_STONE),
+                this.getRemainingPieces(PieceType.STANDING_STONE),
+                this.getRemainingPieces(PieceType.CAPSTONE),
+                this.maxDepth,
+                this.minimaxAlgorithm.useMoveOrdering);
     }
 
     /**
@@ -130,5 +144,14 @@ public class MinimaxAgent extends Player implements Serializable {
      */
     public long getTimeTakenMillis() {
         return this.minimaxAlgorithm.getTimeTakenMillis();
+    }
+
+    /**
+     * Retrieves the number of alpha-beta pruning events during the last move.
+     *
+     * @return The number of pruning events.
+     */
+    public int getPruneCount() {
+        return this.minimaxAlgorithm.getPruneCount();
     }
 }
