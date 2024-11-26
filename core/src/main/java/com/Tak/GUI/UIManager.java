@@ -185,9 +185,7 @@ public class UIManager {
         movesList = new List<>(skin);
         movesList.setItems(movesArray.toArray(new String[0]));
         ScrollPane movesScrollPane = new ScrollPane(movesList, skin);
-        movesScrollPane.setFadeScrollBars(false);
-        movesScrollPane.setScrollbarsVisible(true);
-        movesScrollPane.setForceScroll(false, true); // Disable horizontal scrolling
+        
 
         currentPlayerLabel = new Label("Current Player: " + takGame.getCurrentPlayer().getColor(), skin);
 
