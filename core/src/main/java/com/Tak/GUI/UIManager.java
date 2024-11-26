@@ -105,43 +105,48 @@ public class UIManager {
         skin.add("selection", new Texture(selectionPixmap));
         selectionPixmap.dispose();
 
-        Pixmap textFieldBackgroundPixmap = new Pixmap(150, 30, Pixmap.Format.RGBA8888);
-        textFieldBackgroundPixmap.setColor(Color.DARK_GRAY);
-        textFieldBackgroundPixmap.fill();
-        skin.add("textfield-background", new Texture(textFieldBackgroundPixmap));
-        textFieldBackgroundPixmap.dispose();
-
-        // Create a TextButton style
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.newDrawable("button-up");
-        textButtonStyle.down = skin.newDrawable("button-down", Color.DARK_GRAY);
-        textButtonStyle.font = skin.getFont("default-font");
-        skin.add("default", textButtonStyle);
-
-        // Create a Label style
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        skin.add("default", labelStyle);
-
-        // Create a List style
-        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
-        listStyle.font = skin.getFont("default-font");
-        listStyle.selection = skin.newDrawable("button-down", Color.DARK_GRAY);
-        listStyle.background = skin.newDrawable("button-up", Color.LIGHT_GRAY);
-        skin.add("default", listStyle);
-
-        // Create a ScrollPane style
-        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
-        skin.add("default", scrollPaneStyle);
-
-        // Create and add TextFieldStyle
+        // Add TextFieldStyle
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
-        textFieldStyle.font = skin.getFont("default-font");
+        textFieldStyle.font = font;
         textFieldStyle.fontColor = Color.GREEN;
         textFieldStyle.cursor = skin.newDrawable("cursor");
         textFieldStyle.selection = skin.newDrawable("selection");
-        textFieldStyle.background = skin.newDrawable("textfield-background");
         skin.add("default", textFieldStyle);
+
+        // Add LabelStyle
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = font;
+        skin.add("default", labelStyle);
+
+        // Add TextButtonStyle
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.newDrawable("button-up");
+        textButtonStyle.down = skin.newDrawable("button-down");
+        textButtonStyle.font = font;
+        skin.add("default", textButtonStyle);
+
+        // Add ListStyle
+        com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle listStyle = new com.badlogic.gdx.scenes.scene2d.ui.List.ListStyle();
+        listStyle.font = font;
+        listStyle.selection = skin.newDrawable("button-down");
+        listStyle.background = skin.newDrawable("button-up");
+        skin.add("default", listStyle);
+
+        // Add ScrollPaneStyle
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        scrollPaneStyle.background = skin.newDrawable("button-up");
+        scrollPaneStyle.vScrollKnob = skin.newDrawable("button-down");
+        scrollPaneStyle.hScrollKnob = skin.newDrawable("button-down");
+        skin.add("default", scrollPaneStyle);
+
+        // Add SelectBoxStyle
+        SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+        selectBoxStyle.font = font;
+        selectBoxStyle.fontColor = Color.WHITE;
+        selectBoxStyle.background = skin.newDrawable("button-up");
+        selectBoxStyle.scrollStyle = scrollPaneStyle;
+        selectBoxStyle.listStyle = listStyle;
+        skin.add("default", selectBoxStyle);
 
         // Add WindowStyle for Dialogs
         Pixmap windowPixmap = new Pixmap(400, 200, Pixmap.Format.RGBA8888);
@@ -151,10 +156,12 @@ public class UIManager {
         windowPixmap.dispose();
 
         Window.WindowStyle windowStyle = new Window.WindowStyle();
-        windowStyle.titleFont = skin.getFont("default-font");
+        windowStyle.titleFont = font;
         windowStyle.background = skin.newDrawable("window-background");
-        skin.add("dialog", windowStyle); // Register the "dialog" style
+        skin.add("dialog", windowStyle);
     }
+
+    
 
     /**
      * Creates all UI elements, including the hotbar and piece counters.

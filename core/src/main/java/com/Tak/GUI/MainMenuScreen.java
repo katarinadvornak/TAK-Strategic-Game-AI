@@ -1,6 +1,7 @@
 // File: core/src/main/java/com/Tak/GUI/MainMenuScreen.java
 package com.Tak.GUI;
 
+import com.Tak.Logic.models.GameMode;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -174,9 +175,9 @@ public class MainMenuScreen implements Screen {
             @Override
             protected void result(Object object) {
                 if (object.equals("human")) {
-                    game.setScreen(new GameScreen(game, false)); // Start the GameScreen without AI
+                    game.setScreen(new GameScreen(game, GameMode.HUMAN_VS_HUMAN)); // Start the GameScreen without AI
                 } else if (object.equals("ai")) {
-                    game.setScreen(new GameScreen(game, true)); // Start the GameScreen with AI
+                    game.setScreen(new GameScreen(game, GameMode.HUMAN_VS_AI)); // Start the GameScreen with AI
                 }
             }
         };

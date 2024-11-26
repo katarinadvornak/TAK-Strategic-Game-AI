@@ -189,7 +189,14 @@ public abstract class Player implements Serializable {
     public int getScore() {
         return this.score;
     }
-
+    public void updateFrom(Player other) {
+        // Update internal behavior (fields, strategies, etc.)
+        this.stones = other.getRemainingPieces(Piece.PieceType.FLAT_STONE);
+        this.capstones = other.getRemainingPieces(Piece.PieceType.CAPSTONE);
+        this.opponent = other.getOpponent(); // Maintain opponent relationships
+        this.score = other.getScore();
+    }
+    
     /**
      * Abstract method to create a copy of the player.
      *

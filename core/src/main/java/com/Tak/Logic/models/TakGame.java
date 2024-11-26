@@ -2,6 +2,7 @@
 package com.Tak.Logic.models;
 
 import com.Tak.AI.players.MinimaxAgent;
+import com.Tak.AI.players.RandomAIPlayer;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.players.HumanPlayer;
@@ -86,6 +87,31 @@ public class TakGame implements Serializable {
     }
 
     /**
+     * Replaces an existing player with a new player and updates opponent references.
+     *
+     * @param oldPlayer The player to replace.
+     * @param newPlayer The new player.
+     */
+    public synchronized void replacePlayer(Player oldPlayer, Player newPlayer) {
+        int index = players.indexOf(oldPlayer);
+        if (index != -1) {
+            players.set(index, newPlayer);
+            // Set opponents
+            newPlayer.setOpponent(oldPlayer.getOpponent());
+            oldPlayer.getOpponent().setOpponent(newPlayer); // Corrected: 'newPlayer' instead of 'newAI'
+            // If the replaced player was the current player, keep the currentPlayerIndex pointing to the new player
+            if (players.get(currentPlayerIndex).equals(oldPlayer)) {
+                // currentPlayerIndex remains the same, as players list has been updated at this index
+                // So, getCurrentPlayer() will now return newPlayer
+            }
+            Logger.log("TakGame", "Replaced player " + oldPlayer.getColor() + " with " + newPlayer.getColor());
+        } else {
+            Logger.log("TakGame", "Player to replace not found.");
+        }
+    }
+        
+
+    /**
      * Ends the game as a tie.
      */
     public void endGameAsTie() {
@@ -109,32 +135,32 @@ public class TakGame implements Serializable {
             player2.setOpponent(player1);
             players.add(player1);
             players.add(player2);
-            //Logger.log("TakGame", "Added two HumanPlayers: BLACK and WHITE.");
+            //Logger.log("TakGame", "Added two HumanPlayers: BLUE and GREEN.");
         } else {
             // Add AIPlayers based on aiPlayersCount
             if (aiPlayersCount == 1) {
                 Player player1 = new HumanPlayer(Player.Color.BLUE, 15, 6, 1); // Human Player BLUE
-                Player aiPlayer = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3); // Example piece counts
+                Player aiPlayer = new MinimaxAgent(Player.Color.GREEN, 21, 1, 1, 3); // Example piece counts
                 player1.setOpponent(aiPlayer);
                 aiPlayer.setOpponent(player1);
                 players.add(player1);
                 players.add(aiPlayer);
-                Logger.log("TakGame", "Added HumanPlayer BLACK and AIPlayer WHITE.");
+                Logger.log("TakGame", "Added HumanPlayer BLUE and AIPlayer GREEN.");
             } else if (aiPlayersCount == 2) {
-                Player aiPlayer1 = new MinimaxAgent(Color.BLUE, 21, 1, 1, 3);
-                Player aiPlayer2 = new MinimaxAgent(Color.GREEN, 21, 1, 1, 3);
+                Player aiPlayer1 = new MinimaxAgent(Player.Color.BLUE, 21, 1, 1, 3);
+                Player aiPlayer2 = new MinimaxAgent(Player.Color.GREEN, 21, 1, 1, 3);
                 aiPlayer1.setOpponent(aiPlayer2);
                 aiPlayer2.setOpponent(aiPlayer1);
                 players.add(aiPlayer1);
                 players.add(aiPlayer2);
-                Logger.log("TakGame", "Added two AIPlayers: BLACK and WHITE.");
+                Logger.log("TakGame", "Added two AIPlayers: BLUE and GREEN.");
             } else {
                 throw new IllegalArgumentException("aiPlayersCount must be 0, 1, or 2.");
             }
         }
 
         // Log the final players list
-        //Logger.log("TakGame", "Final Players List:");
+        Logger.log("TakGame", "Final Players List:");
         for (Player p : players) {
             Logger.log("TakGame", p.getClass().getSimpleName() + " - Color: " + p.getColor());
         }
@@ -293,6 +319,7 @@ public class TakGame implements Serializable {
             isGameEnded = true;
             winner = gameStateManager.getWinner();
             if (winner != null) {
+                winner.incrementScore(1); // Increment winner's score by 1 (or more as per game rules)
                 //Logger.log("TakGame", "Player " + winner.getColor() + " wins the game!");
             } else {
                 //Logger.log("TakGame", "The game ended in a tie.");
@@ -441,7 +468,4 @@ public class TakGame implements Serializable {
 
         //Logger.log("Game", boardState.toString());
     }
-
-    
-    
 }
