@@ -75,23 +75,34 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
      */
     public void create() {
         // Initialize the game logic based on game mode
-        Player humanPlayer = new com.Tak.Logic.players.HumanPlayer(Player.Color.GREEN, 21, 1, 1); // Adjust piece counts as needed
-        aiPlayer = null; // **Initialize aiPlayer**
+        List<Player> players = new ArrayList<>();
 
         if (useAI) {
-            aiPlayer = new MinimaxAgent(Player.Color.BLUE, 21, 1, 1, 3); // Default depth 3
-        }
+            // **Human vs. AI Mode**
+            Player humanPlayer = new com.Tak.Logic.players.HumanPlayer(Player.Color.BLUE, 21, 1, 1); // Human Player BLUE
+            aiPlayer = new MinimaxAgent(Player.Color.GREEN, 21, 1, 1, 3); // AI Player GREEN with depth 3
 
-        if (aiPlayer != null) {
             // Set opponents
             humanPlayer.setOpponent(aiPlayer);
             aiPlayer.setOpponent(humanPlayer);
-        }
 
-        List<Player> players = new ArrayList<>();
-        players.add(humanPlayer);
-        if (aiPlayer != null) {
+            players.add(humanPlayer);
             players.add(aiPlayer);
+
+            Logger.log("GameScreen", "Initialized Human vs AI: BLUE (Human) vs GREEN (AI)");
+        } else {
+            // **Human vs. Human Mode**
+            Player player1 = new com.Tak.Logic.players.HumanPlayer(Player.Color.BLUE, 21, 1, 1); // Human Player BLUE
+            Player player2 = new com.Tak.Logic.players.HumanPlayer(Player.Color.GREEN, 21, 1, 1); // Human Player GREEN
+
+            // Set opponents
+            player1.setOpponent(player2);
+            player2.setOpponent(player1);
+
+            players.add(player1);
+            players.add(player2);
+
+            Logger.log("GameScreen", "Initialized Human vs Human: BLUE vs GREEN");
         }
 
         takGame = new TakGame(boardSize, players);
@@ -125,11 +136,7 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
         inputHandler = new GameInputHandler(camera, takGame, renderer, uiManager, this);
 
         // Set input processors
-        if (useAI) {
-            Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
-        } else {
-            Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
-        }
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
 
         addRulesButton();
         addBackButton();
@@ -151,25 +158,29 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
      */
     private void changeAIBehavior(String aiType, int depth) {
         if (!(aiPlayer instanceof MinimaxAgent || aiPlayer instanceof RandomAIPlayer)) {
+            Logger.log("GameScreen", "Current player is not an AI. Cannot change AI behavior.");
             return; // Skip if the current player isn't an AI
         }
 
         Player newAI;
         if ("RandomAI".equals(aiType)) {
-            newAI = new RandomAIPlayer(Player.Color.BLUE,
+            newAI = new RandomAIPlayer(Player.Color.GREEN, // Ensure the color matches the AI player
                                     aiPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE),
                                     aiPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE),
                                     aiPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
+            Logger.log("GameScreen", "Initializing new RandomAIPlayer.");
         } else { // MinimaxAgent
-            newAI = new MinimaxAgent(Player.Color.BLUE,
+            newAI = new MinimaxAgent(Player.Color.GREEN, // Ensure the color matches the AI player
                                     aiPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE),
                                     aiPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE),
                                     aiPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE),
                                     depth); // Use selected depth
+            Logger.log("GameScreen", "Initializing new MinimaxAgent with depth " + depth + ".");
         }
 
         // Replace the AI player using TakGame's replacePlayer method
         takGame.replacePlayer(aiPlayer, newAI);
+        Logger.log("GameScreen", "AI player replaced successfully.");
 
         // Update the aiPlayer reference to point to the new AI
         aiPlayer = newAI;
@@ -374,7 +385,8 @@ public class GameScreen implements Screen, GameInputHandler.UICallback {
                     Logger.log("GameScreen", "AI encountered an error: " + e.getMessage());
                 } finally {
                     // Re-enable input if it's a human player's turn
-                    if (!(takGame.getCurrentPlayer() instanceof MinimaxAgent || takGame.getCurrentPlayer() instanceof RandomAIPlayer)) {
+                    Player nextPlayer = takGame.getCurrentPlayer();
+                    if (!(nextPlayer instanceof MinimaxAgent || nextPlayer instanceof RandomAIPlayer)) {
                         Gdx.input.setInputProcessor(new InputMultiplexer(uiManager.getStage(), inputHandler, camController));
                     }
                     isAIMoving = false;

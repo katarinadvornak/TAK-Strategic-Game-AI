@@ -116,7 +116,12 @@ public class Piece implements Serializable {
     public Piece copy(Player ownerCopy) {
         return new Piece(this.pieceType, ownerCopy);
     }   
-
+    public void setOwner(Player owner) {
+        if (owner == null) {
+            throw new IllegalArgumentException("Owner cannot be null");
+        }
+        this.owner = owner;
+    }
     @Override
     public String toString() {
         String typeSymbol;

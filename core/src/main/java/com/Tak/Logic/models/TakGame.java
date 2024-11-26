@@ -96,19 +96,37 @@ public class TakGame implements Serializable {
         int index = players.indexOf(oldPlayer);
         if (index != -1) {
             players.set(index, newPlayer);
+            
             // Set opponents
             newPlayer.setOpponent(oldPlayer.getOpponent());
             oldPlayer.getOpponent().setOpponent(newPlayer); // Corrected: 'newPlayer' instead of 'newAI'
-            // If the replaced player was the current player, keep the currentPlayerIndex pointing to the new player
-            if (players.get(currentPlayerIndex).equals(oldPlayer)) {
-                // currentPlayerIndex remains the same, as players list has been updated at this index
-                // So, getCurrentPlayer() will now return newPlayer
+            
+            // Update ownership of all Pieces owned by oldPlayer
+            Board board = getBoard(); // Ensure this method correctly retrieves the board
+            for (int x = 0; x < board.getSize(); x++) {
+                for (int y = 0; y < board.getSize(); y++) {
+                    List<Piece> stack = board.getBoardPosition(x, y);
+                    for (Piece piece : stack) {
+                        if (piece.getOwner().equals(oldPlayer)) {
+                            piece.setOwner(newPlayer);
+                            Logger.log("TakGame", "Updated piece at (" + x + ", " + y + ") to new owner: " + newPlayer.getColor());
+                        }
+                    }
+                }
             }
+    
+            // If the replaced player was the current player, the currentPlayerIndex remains valid
+            if (players.get(currentPlayerIndex).equals(oldPlayer)) {
+                // currentPlayerIndex points to the new player
+                // No action needed as players.set(index, newPlayer) already updated the list
+            }
+    
             Logger.log("TakGame", "Replaced player " + oldPlayer.getColor() + " with " + newPlayer.getColor());
         } else {
             Logger.log("TakGame", "Player to replace not found.");
         }
     }
+    
         
 
     /**
