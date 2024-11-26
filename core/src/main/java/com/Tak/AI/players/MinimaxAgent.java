@@ -1,9 +1,9 @@
+// File: com/Tak/AI/players/MinimaxAgent.java
 package com.Tak.AI.players;
 
 import com.Tak.AI.actions.Action;
 import com.Tak.AI.evaluation.EvaluationFunction;
 import com.Tak.AI.search.MiniMaxAlgorithm2;
-import com.Tak.AI.search.MinimaxAlgorithm;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
@@ -65,7 +65,6 @@ public class MinimaxAgent extends Player implements Serializable {
         }
     }
 
-
     /**
      * Creates a copy of this MinimaxAgent.
      *
@@ -115,4 +114,21 @@ public class MinimaxAgent extends Player implements Serializable {
         return getRemainingPieces(PieceType.FLAT_STONE) + getRemainingPieces(PieceType.STANDING_STONE) + getRemainingPieces(PieceType.CAPSTONE);
     }
 
+    /**
+     * Retrieves the number of nodes evaluated during the last move.
+     *
+     * @return The number of nodes evaluated.
+     */
+    public int getNodesEvaluated() {
+        return this.minimaxAlgorithm.getNodesEvaluated();
+    }
+
+    /**
+     * Retrieves the time taken (in milliseconds) during the last move.
+     *
+     * @return The time taken in milliseconds.
+     */
+    public long getTimeTakenMillis() {
+        return this.minimaxAlgorithm.getTimeTakenMillis();
+    }
 }
