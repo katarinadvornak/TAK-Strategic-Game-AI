@@ -34,7 +34,7 @@ public class UIManager {
     public Image normalStoneImage, standingStoneImage, capstoneImage;
     public Table hotbarTable;
 
-    // New: Labels for piece counts
+    // Labels for piece counts
     private Label normalStoneCountLabel, standingStoneCountLabel, capstoneCountLabel;
 
     public ArrayList<String> movesArray;
@@ -105,12 +105,20 @@ public class UIManager {
         skin.add("selection", new Texture(selectionPixmap));
         selectionPixmap.dispose();
 
+        // Create a background for TextField
+        Pixmap textFieldPixmap = new Pixmap(200, 40, Pixmap.Format.RGBA8888);
+        textFieldPixmap.setColor(Color.DARK_GRAY); // Choose a contrasting color
+        textFieldPixmap.fill();
+        skin.add("textfield-background", new Texture(textFieldPixmap));
+        textFieldPixmap.dispose();
+
         // Add TextFieldStyle
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
         textFieldStyle.font = font;
         textFieldStyle.fontColor = Color.GREEN;
         textFieldStyle.cursor = skin.newDrawable("cursor");
         textFieldStyle.selection = skin.newDrawable("selection");
+        textFieldStyle.background = skin.newDrawable("textfield-background"); // Set the background
         skin.add("default", textFieldStyle);
 
         // Add LabelStyle
@@ -161,8 +169,6 @@ public class UIManager {
         skin.add("dialog", windowStyle);
     }
 
-    
-
     /**
      * Creates all UI elements, including the hotbar and piece counters.
      */
@@ -170,7 +176,7 @@ public class UIManager {
         newGameButton = new TextButton("New Game", skin);
         exitButton = new TextButton("Exit", skin);
 
-        // Create small black and white circles for player icons
+        // Create small colored circles for player icons
         Texture playerBlueTexture = createCircleTexture(Color.BLUE);
         Texture playerGreenTexture = createCircleTexture(Color.GREEN);
         Image playerBlueImage = new Image(new TextureRegionDrawable(new TextureRegion(playerBlueTexture)));
@@ -185,7 +191,6 @@ public class UIManager {
         movesList = new List<>(skin);
         movesList.setItems(movesArray.toArray(new String[0]));
         ScrollPane movesScrollPane = new ScrollPane(movesList, skin);
-        
 
         currentPlayerLabel = new Label("Current Player: " + takGame.getCurrentPlayer().getColor(), skin);
 
@@ -210,10 +215,12 @@ public class UIManager {
         // Move List
         leftPanel.add(movesScrollPane).height(300).width(300).expandY().fillY().row(); // Increased height and width
 
-        normalStoneCountLabel = new Label("0", skin);
-        standingStoneCountLabel = new Label("0", skin);
-        capstoneCountLabel = new Label("0", skin);
-        
+        // Initialize piece count labels
+        normalStoneCountLabel = new Label("Left: 0", skin);
+        standingStoneCountLabel = new Label("Left: 0", skin);
+        capstoneCountLabel = new Label("Left: 0", skin);
+
+        // Create hotbar panel
         Table hotbarPanel = new Table();
         hotbarPanel.defaults().pad(10); // Padding between hotbar items
 
@@ -231,13 +238,13 @@ public class UIManager {
         hotbarPanel.add(normalStoneImage).size(50, 50);
         hotbarPanel.add(normalStoneLabel).padLeft(5);
         hotbarPanel.add(normalStoneCountLabel).padLeft(10);
-        hotbarPanel.add(standingStoneImage).size(50, 50).padLeft(20); 
+        hotbarPanel.add(standingStoneImage).size(50, 50).padLeft(20);
         hotbarPanel.add(standingStoneLabel).padLeft(5);
         hotbarPanel.add(standingStoneCountLabel).padLeft(10);
         hotbarPanel.add(capstoneImage).size(50, 50).padLeft(20);
         hotbarPanel.add(capstoneLabel).padLeft(5);
         hotbarPanel.add(capstoneCountLabel).padLeft(10);
-        
+
         // Create the main UI table
         Table uiTable = new Table();
         uiTable.setFillParent(true);
@@ -393,24 +400,30 @@ public class UIManager {
                     } catch (Exception e) {
                         // Handle any unexpected exceptions
                         showErrorDialog("An unexpected error occurred: " + e.getMessage());
-                                                e.printStackTrace();
-                                            }
-                                        }
-                                    }
-                        
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+
+        // Set up the dialog's content
+        dialog.getContentTable().add(new Label("Enter drop counts separated by commas (leave blank to move 1 piece):", skin));
+        dialog.getContentTable().row();
+        dialog.getContentTable().add(dropCountsField).width(200).height(40); // Added height for better visibility
+        dialog.button("OK", "ok");
+        dialog.button("Cancel", "cancel");
+        dialog.show(stage);
+    }
+
+    /**
+     * Displays an error dialog with the specified message.
+     *
+     * @param errorMessage The error message to display.
+     */
     public void showErrorDialog(String errorMessage) {
         Dialog dialog = new Dialog("Error", skin, "dialog");
         dialog.text(errorMessage);
         dialog.button("OK");
-        dialog.show(stage);
-    }
-
-        };
-        dialog.getContentTable().add(new Label("Enter drop counts separated by commas (leave blank to move 1 piece):", skin));
-        dialog.getContentTable().row();
-        dialog.getContentTable().add(dropCountsField).width(200);
-        dialog.button("OK", "ok");
-        dialog.button("Cancel", "cancel");
         dialog.show(stage);
     }
 
@@ -419,7 +432,7 @@ public class UIManager {
      */
     public void updateHotbarColors() {
         Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLUE;
-    
+
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
             // First two moves: players place opponent's pieces
@@ -438,31 +451,30 @@ public class UIManager {
             capstoneImage.setVisible(true);
             capstoneCountLabel.setVisible(true);
         }
-    
+
         // Update normal stone color
         normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
         normalStoneImage.invalidate();
-    
+
         // Update standing stone and capstone colors only if they are visible
         if (takGame.getMoveCount() >= 2) {
             standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
             standingStoneImage.invalidate();
         }
-        // Update capstone color to always be ...
+        // Update capstone color to always be visible if applicable
         capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
         capstoneImage.invalidate();
-    
+
         // Update the piece count labels
         normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
         standingStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
         capstoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
-    
+
         // **Disable hotbar buttons if no pieces left**
         normalStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
         standingStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
         capstoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE) > 0 ? Touchable.enabled : Touchable.disabled);
     }
-    
 
     /**
      * Updates the player scores displayed on the UI.
