@@ -1,5 +1,5 @@
 // File: com/Tak/AI/experiments/ComplexityAnalysisTest.java
-package com.Tak.AI.experiments;
+package com.Tak.AI.experiements;
 
 import com.Tak.AI.players.MinimaxAgent;
 import com.Tak.AI.players.RandomAIPlayer;

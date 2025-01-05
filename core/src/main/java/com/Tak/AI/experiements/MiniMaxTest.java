@@ -1,4 +1,4 @@
-package com.Tak.AI.Test;
+package com.Tak.AI.experiements;
 
 import com.Tak.AI.players.MinimaxAgent;
 import com.Tak.AI.players.RandomAIPlayer;
