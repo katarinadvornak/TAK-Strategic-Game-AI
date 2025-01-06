@@ -1,6 +1,6 @@
-// File: core/src/main/java/com/Tak/AI/evaluation/EvaluationFunction.java
 package com.Tak.AI.evaluation;
 
+import com.Tak.AI.utils.RoadConnectivity;
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Direction;
 import com.Tak.Logic.models.Piece;
@@ -16,7 +16,8 @@ import java.util.Map;
  * It assigns scores based on various strategic factors, adjusting its strategy
  * dynamically based on whether the AI is ahead or behind.
  */
-public class EvaluationFunction implements Serializable {
+public class EvaluationFunction implements IEvaluationFunction {
+
     private static final long serialVersionUID = 1L;
 
     private RoadConnectivity roadChecker;
@@ -37,6 +38,7 @@ public class EvaluationFunction implements Serializable {
      * @param player The player for whom the evaluation is being done.
      * @return A numerical score representing the desirability of the board state.
      */
+    @Override
     public double evaluate(Board board, Player player) {
         String stateHash = generateStateHash(board, player);
 
@@ -46,7 +48,6 @@ public class EvaluationFunction implements Serializable {
 
         // Check for road win conditions
         if (roadChecker.checkForRoadWin(player, board)) {
-            //Logger.log("EvaluationFunction", player.getColor() + " has completed a road and wins!");
             evaluationCache.put(stateHash, Double.POSITIVE_INFINITY);
             return Double.POSITIVE_INFINITY;
         } else if (roadChecker.checkForRoadWin(player.getOpponent(), board)) {
@@ -58,7 +59,6 @@ public class EvaluationFunction implements Serializable {
         double heuristicScore = heuristicEvaluation(board, player);
 
         evaluationCache.put(stateHash, heuristicScore);
-
         return heuristicScore;
     }
 
@@ -112,17 +112,16 @@ public class EvaluationFunction implements Serializable {
         // Dynamic weight adjustments based on current evaluation
         if (currentEvaluation < 0) {
             // AI is behind, adopt defensive strategy
-            blockingScore *= 1.5; // Increase blocking priority
-            roadPotentialScore *= 0.8; // Decrease own road building priority
-            stackingScore *= 1.0; // Keep stacking priority
+            blockingScore *= 1.5;
+            roadPotentialScore *= 0.8;
+            stackingScore *= 1.0;
         } else {
             // AI is ahead, adopt offensive strategy
-            roadPotentialScore *= 1.2; // Increase own road building priority
-            blockingScore *= 0.8; // Decrease blocking priority
-            stackingScore *= 1.0; // Keep stacking priority
+            roadPotentialScore *= 1.2;
+            blockingScore *= 0.8;
+            stackingScore *= 1.0;
         }
 
-        // Recalculate total score with adjusted weights
         score = baseScore + roadPotentialScore + stackingScore + blockingScore + capstoneScore + flatStoneScore;
 
         return score;
@@ -143,16 +142,14 @@ public class EvaluationFunction implements Serializable {
             for (int x = 0; x < size; x++) {
                 PieceStack stack = board.getBoardStack(x, y);
                 if (!stack.isEmpty()) {
-                    // Determine who controls the stack (owner of the top piece)
                     Player stackOwner = stack.getTopPiece().getOwner();
                     if (stackOwner.equals(player)) {
-                        stackingScore += stack.size() * 2; // Reward for larger stacks
-                        // Additional bonus if the stack can move towards completing a road
+                        stackingScore += stack.size() * 2;
                         if (canMoveStackTowardsWin(board, x, y, player)) {
                             stackingScore += 5.0;
                         }
                     } else if (stackOwner.equals(player.getOpponent())) {
-                        stackingScore -= stack.size(); // Penalty if opponent controls larger stacks
+                        stackingScore -= stack.size();
                     }
                 }
             }
@@ -170,37 +167,25 @@ public class EvaluationFunction implements Serializable {
      * @return True if the stack can be moved towards a road completion, false otherwise.
      */
     private boolean canMoveStackTowardsWin(Board board, int x, int y, Player player) {
-        // Determine the target direction based on player's color
         Direction targetDirection = getPlayerRoadDirection(player);
         if (targetDirection == null) {
-            return false; // Undefined direction
+            return false;
         }
-
-        // Check if the stack is not already at the edge in the target direction
         if (isAtEdge(board, x, y, targetDirection)) {
             return false;
         }
-
-        // Check if moving in the target direction is possible
         int newX = x + targetDirection.getDeltaX();
         int newY = y + targetDirection.getDeltaY();
         return board.isWithinBounds(newX, newY);
     }
 
-    /**
-     * Determines the road direction for a player based on their color.
-     *
-     * @param player The player.
-     * @return The target direction for road-building.
-     */
     private Direction getPlayerRoadDirection(Player player) {
-        // Assuming BLUE aims left-right and GREEN aims top-bottom
         if (player.getColor() == Player.Color.BLUE) {
-            return Direction.RIGHT; // Left to Right
+            return Direction.RIGHT; 
         } else if (player.getColor() == Player.Color.GREEN) {
-            return Direction.DOWN; // Top to Bottom
+            return Direction.DOWN;  
         }
-        return null; // Undefined
+        return null;
     }
 
     /**
@@ -240,14 +225,12 @@ public class EvaluationFunction implements Serializable {
         int size = board.getSize();
         Player opponent = player.getOpponent();
 
-        // Iterate over all positions on the board
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
-                // Check if this position is adjacent to the opponent's road
                 if (isAdjacentToOpponentRoad(board, x, y, opponent)) {
                     PieceStack stack = board.getBoardStack(x, y);
                     if (stack.isEmpty()) {
-                        blockingScore += 1.0; // Potential to block
+                        blockingScore += 1.0;
                     } else {
                         Piece topPiece = stack.getTopPiece();
                         if (topPiece.getOwner().equals(player)) {
@@ -302,7 +285,8 @@ public class EvaluationFunction implements Serializable {
                 PieceStack stack = board.getBoardStack(x, y);
                 if (!stack.isEmpty()) {
                     Piece topPiece = stack.getTopPiece();
-                    if (topPiece.getPieceType() == Piece.PieceType.CAPSTONE && topPiece.getOwner().equals(player)) {
+                    if (topPiece.getPieceType() == Piece.PieceType.CAPSTONE 
+                        && topPiece.getOwner().equals(player)) {
                         capstoneScore += evaluateCapstonePosition(board, x, y, player);
                     }
                 }
@@ -332,7 +316,7 @@ public class EvaluationFunction implements Serializable {
                 if (!adjStack.isEmpty()) {
                     Piece topPiece = adjStack.getTopPiece();
                     if (topPiece.getOwner().equals(opponent) && topPiece.getPieceType() == Piece.PieceType.STANDING_STONE) {
-                        impactScore += 2.0; // Capstone can flatten opponent's wall
+                        impactScore += 2.0;
                     }
                 }
             }

@@ -1,5 +1,5 @@
 // File: core/src/main/java/com/Tak/AI/evaluation/RoadConnectivity.java
-package com.Tak.AI.evaluation;
+package com.Tak.AI.utils;
 
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Direction;

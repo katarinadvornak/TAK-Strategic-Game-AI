@@ -1,9 +1,9 @@
 package com.Tak.Logic.validators;
 
+import com.Tak.AI.utils.RoadConnectivity;
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Piece;
 import com.Tak.Logic.models.Player;
-import com.Tak.AI.evaluation.RoadConnectivity;
 import com.Tak.Logic.utils.Logger;
 
 import java.util.List;

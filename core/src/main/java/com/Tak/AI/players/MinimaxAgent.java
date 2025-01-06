@@ -1,9 +1,9 @@
-// File: com/Tak/AI/players/MinimaxAgent.java
 package com.Tak.AI.players;
 
 import com.Tak.AI.actions.Action;
+import com.Tak.AI.evaluation.IEvaluationFunction;
 import com.Tak.AI.evaluation.EvaluationFunction;
-import com.Tak.AI.search.MiniMaxAlgorithm2;
+import com.Tak.AI.search.MiniMaxAlgorithm;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
@@ -20,8 +20,10 @@ import java.util.Objects;
  */
 public class MinimaxAgent extends Player implements Serializable {
     private static final long serialVersionUID = 1L;
-    private MiniMaxAlgorithm2 minimaxAlgorithm;
-    private EvaluationFunction evaluationFunction;
+
+    // Use the interface type here instead of the concrete class
+    private IEvaluationFunction evaluationFunction;
+    private MiniMaxAlgorithm minimaxAlgorithm;
     private int maxDepth;
 
     /**
@@ -29,7 +31,7 @@ public class MinimaxAgent extends Player implements Serializable {
      *
      * @param color            The color of the player.
      * @param flatStones       Number of flat stones.
-     * @param standingStones   Number of standing stones.
+     * @param standingStones   (unused in your current code but left for future expansions)
      * @param capstones        Number of capstones.
      * @param maxDepth         The maximum depth for the Minimax search.
      * @param useMoveOrdering  Flag to enable or disable move ordering.
@@ -37,19 +39,21 @@ public class MinimaxAgent extends Player implements Serializable {
     public MinimaxAgent(Color color, int flatStones, int standingStones,
                         int capstones, int maxDepth, boolean useMoveOrdering) {
         super(color, flatStones, capstones);
+
+        // Initialize with your current heuristic-based evaluation
+        // but we could also pass in a different IEvaluationFunction
         this.evaluationFunction = new EvaluationFunction();
         this.maxDepth = maxDepth;
-        this.minimaxAlgorithm = new MiniMaxAlgorithm2(evaluationFunction, maxDepth, this, useMoveOrdering);
+        this.minimaxAlgorithm = new MiniMaxAlgorithm(
+            this.evaluationFunction,
+            maxDepth,
+            this,
+            useMoveOrdering
+        );
     }
 
     /**
      * Alternative constructor with move ordering enabled by default.
-     *
-     * @param color            The color of the player.
-     * @param flatStones       Number of flat stones.
-     * @param standingStones   Number of standing stones.
-     * @param capstones        Number of capstones.
-     * @param maxDepth         The maximum depth for the Minimax search.
      */
     public MinimaxAgent(Color color, int flatStones, int standingStones,
                         int capstones, int maxDepth) {
@@ -58,10 +62,6 @@ public class MinimaxAgent extends Player implements Serializable {
 
     /**
      * Executes the AI player's move using the Minimax algorithm.
-     *
-     * @param game The current game instance.
-     * @throws InvalidMoveException If the move is invalid.
-     * @throws GameOverException    If the game is over.
      */
     @Override
     public void makeMove(TakGame game) throws InvalidMoveException, GameOverException {
@@ -78,60 +78,41 @@ public class MinimaxAgent extends Player implements Serializable {
         }
     }
 
-    /**
-     * Creates a copy of this MinimaxAgent.
-     *
-     * @return A copy of this MinimaxAgent.
-     */
     @Override
     public Player copy() {
-        return new MinimaxAgent(this.getColor(),
+        return new MinimaxAgent(
+                this.getColor(),
                 this.getRemainingPieces(PieceType.FLAT_STONE),
                 this.getRemainingPieces(PieceType.STANDING_STONE),
                 this.getRemainingPieces(PieceType.CAPSTONE),
                 this.maxDepth,
-                this.minimaxAlgorithm.useMoveOrdering);
+                this.minimaxAlgorithm.useMoveOrdering
+        );
     }
 
-    /**
-     * Compares MinimaxAgents based on Player properties.
-     *
-     * @param obj The object to compare.
-     * @return true if the agents are equal, false otherwise.
-     */
     @Override
     public boolean equals(Object obj) {
         return super.equals(obj) && obj instanceof MinimaxAgent;
     }
 
-    /**
-     * Computes the hash code for this MinimaxAgent.
-     *
-     * @return The hash code of this MinimaxAgent.
-     */
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), "MinimaxAgent");
     }
 
-    /**
-     * Retrieves the maximum search depth.
-     *
-     * @return The maximum depth.
-     */
+    @Override
+    public int getTotalPiecesLeft() {
+        return getRemainingPieces(PieceType.FLAT_STONE)
+             + getRemainingPieces(PieceType.STANDING_STONE)
+             + getRemainingPieces(PieceType.CAPSTONE);
+    }
+
     public int getMaxDepth() {
         return this.maxDepth;
     }
 
-    @Override
-    public int getTotalPiecesLeft() {
-        return getRemainingPieces(PieceType.FLAT_STONE) + getRemainingPieces(PieceType.STANDING_STONE) + getRemainingPieces(PieceType.CAPSTONE);
-    }
-
     /**
      * Retrieves the number of nodes evaluated during the last move.
-     *
-     * @return The number of nodes evaluated.
      */
     public int getNodesEvaluated() {
         return this.minimaxAlgorithm.getNodesEvaluated();
@@ -139,8 +120,6 @@ public class MinimaxAgent extends Player implements Serializable {
 
     /**
      * Retrieves the time taken (in milliseconds) during the last move.
-     *
-     * @return The time taken in milliseconds.
      */
     public long getTimeTakenMillis() {
         return this.minimaxAlgorithm.getTimeTakenMillis();
@@ -148,8 +127,6 @@ public class MinimaxAgent extends Player implements Serializable {
 
     /**
      * Retrieves the number of alpha-beta pruning events during the last move.
-     *
-     * @return The number of pruning events.
      */
     public int getPruneCount() {
         return this.minimaxAlgorithm.getPruneCount();
