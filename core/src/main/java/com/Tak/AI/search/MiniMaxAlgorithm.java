@@ -3,7 +3,6 @@ package com.Tak.AI.search;
 import com.Tak.AI.actions.Action;
 import com.Tak.AI.evaluation.IEvaluationFunction;
 import com.Tak.AI.utils.ActionGenerator;
-import com.Tak.AI.utils.MoveOrderingHeuristics;
 import com.Tak.Logic.exceptions.InvalidMoveException;
 import com.Tak.Logic.models.Board;
 import com.Tak.Logic.models.Player;
@@ -15,13 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implements the Minimax algorithm with Alpha-Beta Pruning for decision-making in the TAK game,
- * now referencing IEvaluationFunction instead of a concrete class.
+ * Implements the Minimax algorithm with Alpha-Beta Pruning for decision-making in the TAK game.
+ * Now referencing IEvaluationFunction instead of a concrete class.
  */
 public class MiniMaxAlgorithm implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private IEvaluationFunction evalFunction; // Changed type to the interface
+    private IEvaluationFunction evalFunction; 
     private final int maxDepth;
     private final Player aiPlayer;
     private Map<String, Double> transpositionTable;
@@ -36,8 +35,8 @@ public class MiniMaxAlgorithm implements Serializable {
     public boolean useMoveOrdering; // Flag to enable/disable move ordering
 
     /**
-     * Constructs a MiniMaxAlgorithm2 with the specified evaluation function, maximum depth,
-     * AI player, and move ordering option.
+     * Constructs a MiniMaxAlgorithm with the specified evaluation function,
+     * maximum depth, AI player, and move ordering option.
      */
     public MiniMaxAlgorithm(IEvaluationFunction evalFunction,
                              int maxDepth,
@@ -54,7 +53,15 @@ public class MiniMaxAlgorithm implements Serializable {
     }
 
     /**
-     * Finds the best move for the AIPlayer using the Minimax algorithm with Alpha-Beta Pruning.
+     * Public getter to allow direct access to the evaluation function.
+     * Needed for "findWorstMove" logic in MinimaxAgent.
+     */
+    public IEvaluationFunction getEvalFunction() {
+        return this.evalFunction;
+    }
+
+    /**
+     * Finds the best move for the AI player using Minimax with Alpha-Beta Pruning.
      */
     public Action findBestMove(Board board, Player player, int currentMoveCount) {
         Action bestAction = null;
@@ -67,7 +74,6 @@ public class MiniMaxAlgorithm implements Serializable {
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, player);
 
-
         boolean timeLimitExceeded = false;
 
         for (Action action : possibleActions) {
@@ -79,9 +85,16 @@ public class MiniMaxAlgorithm implements Serializable {
             Board boardAfterAction = board.copy();
             try {
                 action.execute(boardAfterAction);
-                double moveValue = minimax(boardAfterAction, maxDepth - 1, false,
-                                           Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
-                                           player, currentMoveCount + 1);
+
+                double moveValue = minimax(
+                    boardAfterAction, 
+                    maxDepth - 1, 
+                    false,
+                    Double.NEGATIVE_INFINITY, 
+                    Double.POSITIVE_INFINITY,
+                    player, 
+                    currentMoveCount + 1
+                );
 
                 if (moveValue > bestValue || bestAction == null) {
                     bestValue = moveValue;
@@ -97,6 +110,7 @@ public class MiniMaxAlgorithm implements Serializable {
 
         if (bestAction == null) {
             if (!possibleActions.isEmpty()) {
+                // Fall back to the first valid action if none was better
                 bestAction = possibleActions.get(0);
             } else {
                 throw new IllegalStateException("No valid moves available.");
@@ -117,6 +131,8 @@ public class MiniMaxAlgorithm implements Serializable {
                            double beta,
                            Player player,
                            int moveCount) throws InterruptedException {
+
+        // Time-limit check
         if (System.currentTimeMillis() - startTime > timeLimitMillis) {
             throw new InterruptedException("Time limit exceeded during minimax.");
         }
@@ -124,16 +140,19 @@ public class MiniMaxAlgorithm implements Serializable {
         nodesEvaluated++;
 
         double currentEval = evalFunction.evaluate(board, aiPlayer);
+
+        // Terminal conditions
         if (depth == 0 || board.isFull()
             || currentEval == Double.POSITIVE_INFINITY
             || currentEval == Double.NEGATIVE_INFINITY) {
             return currentEval;
         }
 
+        // Determine which player is acting at this depth
         Player currentPlayer = isMaximizing ? player : player.getOpponent();
+
         List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, currentPlayer, moveCount);
         List<Action> possibleActions = parseActionStrings(possibleActionStrings, currentPlayer);
-
 
         if (isMaximizing) {
             double maxEval = Double.NEGATIVE_INFINITY;
@@ -141,7 +160,6 @@ public class MiniMaxAlgorithm implements Serializable {
                 if (System.currentTimeMillis() - startTime > timeLimitMillis) {
                     throw new InterruptedException("Time limit exceeded during minimax.");
                 }
-
                 Board boardAfterAction = board.copy();
                 try {
                     action.execute(boardAfterAction);
@@ -158,13 +176,13 @@ public class MiniMaxAlgorithm implements Serializable {
                 }
             }
             return maxEval;
+
         } else {
             double minEval = Double.POSITIVE_INFINITY;
             for (Action action : possibleActions) {
                 if (System.currentTimeMillis() - startTime > timeLimitMillis) {
                     throw new InterruptedException("Time limit exceeded during minimax.");
                 }
-
                 Board boardAfterAction = board.copy();
                 try {
                     action.execute(boardAfterAction);
@@ -184,14 +202,17 @@ public class MiniMaxAlgorithm implements Serializable {
         }
     }
 
-    private List<Action> parseActionStrings(List<String> actionStrings, Player player) {
+    /**
+     * Converts raw action strings into Action objects.
+     */
+    public List<Action> parseActionStrings(List<String> actionStrings, Player player) {
         List<Action> actions = new ArrayList<>();
         for (String actionStr : actionStrings) {
             try {
                 Action action = Action.fromString(actionStr, player.getColor());
                 actions.add(action);
             } catch (InvalidMoveException e) {
-                // skip invalid
+                // Skip invalid
             }
         }
         return actions;

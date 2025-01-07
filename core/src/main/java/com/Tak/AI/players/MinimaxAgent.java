@@ -1,8 +1,8 @@
 package com.Tak.AI.players;
 
 import com.Tak.AI.actions.Action;
-import com.Tak.AI.evaluation.IEvaluationFunction;
 import com.Tak.AI.evaluation.EvaluationFunction;
+import com.Tak.AI.evaluation.IEvaluationFunction;
 import com.Tak.AI.search.MiniMaxAlgorithm;
 import com.Tak.Logic.exceptions.GameOverException;
 import com.Tak.Logic.exceptions.InvalidMoveException;
@@ -11,8 +11,10 @@ import com.Tak.Logic.models.Piece.PieceType;
 import com.Tak.Logic.models.Player;
 import com.Tak.Logic.models.TakGame;
 import com.Tak.Logic.models.Player.Color;
+import com.Tak.AI.utils.ActionGenerator;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -61,21 +63,67 @@ public class MinimaxAgent extends Player implements Serializable {
     }
 
     /**
-     * Executes the AI player's move using the Minimax algorithm.
+     * Executes the AI player's move. 
+     * Added logic to force the worst move if it's the AI's first move (game.getMoveCount() < 2).
      */
     @Override
     public void makeMove(TakGame game) throws InvalidMoveException, GameOverException {
         Board board = game.getBoard();
-        Action bestMove = minimaxAlgorithm.findBestMove(board, this, game.getMoveCount());
 
-        if (bestMove != null) {
-            bestMove.execute(board);
-            game.incrementMoveCount();
-            game.checkWinConditions();
-            game.switchPlayer();
+        // Example: if it's the AI's very first move (or if you want first two moves, adjust condition)
+        if (game.getMoveCount() < 2) {
+            // Force the worst possible move
+            Action worstMove = findWorstMove(board, this, game.getMoveCount());
+            if (worstMove != null) {
+                worstMove.execute(board);
+                game.incrementMoveCount();
+                game.checkWinConditions();
+                game.switchPlayer();
+            } else {
+                throw new InvalidMoveException("No valid moves available for the AI's first move.");
+            }
         } else {
-            throw new InvalidMoveException("No valid moves available.");
+            // Normal Minimax logic for subsequent moves
+            Action bestMove = minimaxAlgorithm.findBestMove(board, this, game.getMoveCount());
+            if (bestMove != null) {
+                bestMove.execute(board);
+                game.incrementMoveCount();
+                game.checkWinConditions();
+                game.switchPlayer();
+            } else {
+                throw new InvalidMoveException("No valid moves available.");
+            }
         }
+    }
+
+    /**
+     * Helper method to pick the "worst" move (lowest-evaluated) from all possible actions.
+     */
+    private Action findWorstMove(Board board, Player player, int currentMoveCount) {
+        // Generate possible action strings
+        List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
+        // Convert them to Action objects
+        List<Action> possibleActions = minimaxAlgorithm.parseActionStrings(possibleActionStrings, player);
+
+        Action worstAction = null;
+        double worstValue = Double.POSITIVE_INFINITY;
+
+        for (Action action : possibleActions) {
+            Board boardCopy = board.copy();
+            try {
+                action.execute(boardCopy);
+                // Evaluate the resulting board
+                double moveValue = minimaxAlgorithm.getEvalFunction().evaluate(boardCopy, this);
+
+                if (moveValue < worstValue || worstAction == null) {
+                    worstValue = moveValue;
+                    worstAction = action;
+                }
+            } catch (InvalidMoveException e) {
+                // Skip invalid
+            }
+        }
+        return worstAction;
     }
 
     @Override
