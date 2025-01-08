@@ -63,7 +63,7 @@ public class MinimaxAgent extends Player implements Serializable {
     }
 
     /**
-     * Executes the AI player's move. 
+     * Executes the AI player's move.
      * Added logic to force the worst move if it's the AI's first move (game.getMoveCount() < 2).
      */
     @Override
@@ -100,10 +100,12 @@ public class MinimaxAgent extends Player implements Serializable {
      * Helper method to pick the "worst" move (lowest-evaluated) from all possible actions.
      */
     private Action findWorstMove(Board board, Player player, int currentMoveCount) {
+
+        Player opponent = player.getOpponent();
         // Generate possible action strings
-        List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, player, currentMoveCount);
+        List<String> possibleActionStrings = ActionGenerator.generatePossibleActions(board, opponent, currentMoveCount);
         // Convert them to Action objects
-        List<Action> possibleActions = minimaxAlgorithm.parseActionStrings(possibleActionStrings, player);
+        List<Action> possibleActions = minimaxAlgorithm.parseActionStrings(possibleActionStrings, opponent);
 
         Action worstAction = null;
         double worstValue = Double.POSITIVE_INFINITY;

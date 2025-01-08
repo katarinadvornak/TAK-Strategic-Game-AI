@@ -431,50 +431,67 @@ public class UIManager {
      * Updates the hotbar colors and piece count labels based on the current game state.
      */
     public void updateHotbarColors() {
-        Color currentColor = takGame.getCurrentPlayer().getColor() == Player.Color.GREEN ? Color.GREEN : Color.BLUE;
-
+        // Decide who actually owns the piece being placed this turn
         Player targetPlayer;
         if (takGame.getMoveCount() < 2) {
-            // First two moves: players place opponent's pieces
+            // First two moves => place opponent’s pieces
             targetPlayer = takGame.getOpponentPlayer();
-            // Hide standing stone and capstone during first two moves
+
+            // Hide standing/capstone
             standingStoneImage.setVisible(false);
             standingStoneCountLabel.setVisible(false);
             capstoneImage.setVisible(false);
             capstoneCountLabel.setVisible(false);
+
         } else {
-            // After first two moves: players place their own pieces
+            // Normal scenario => place your own pieces
             targetPlayer = takGame.getCurrentPlayer();
-            // Show standing stone and capstone
+
+            // Show standing/capstone
             standingStoneImage.setVisible(true);
             standingStoneCountLabel.setVisible(true);
             capstoneImage.setVisible(true);
             capstoneCountLabel.setVisible(true);
         }
 
-        // Update normal stone color
-        normalStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("normal", currentColor)));
+        // Now pick the color from targetPlayer
+        Color pieceColor = (targetPlayer.getColor() == Player.Color.GREEN) ? Color.GREEN : Color.BLUE;
+
+        // Update placeholders with pieceColor
+        normalStoneImage.setDrawable(
+            new TextureRegionDrawable(createColoredPlaceholder("normal", pieceColor)));
         normalStoneImage.invalidate();
 
-        // Update standing stone and capstone colors only if they are visible
         if (takGame.getMoveCount() >= 2) {
-            standingStoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("standing", currentColor)));
+            standingStoneImage.setDrawable(
+                new TextureRegionDrawable(createColoredPlaceholder("standing", pieceColor)));
             standingStoneImage.invalidate();
         }
-        // Update capstone color to always be visible if applicable
-        capstoneImage.setDrawable(new TextureRegionDrawable(createColoredPlaceholder("capstone", currentColor)));
+
+        capstoneImage.setDrawable(
+            new TextureRegionDrawable(createColoredPlaceholder("capstone", pieceColor)));
         capstoneImage.invalidate();
 
-        // Update the piece count labels
-        normalStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
-        standingStoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
-        capstoneCountLabel.setText("Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
+        // Update piece counts from targetPlayer
+        normalStoneCountLabel.setText(
+            "Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE));
+        standingStoneCountLabel.setText(
+            "Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE));
+        capstoneCountLabel.setText(
+            "Left: " + targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE));
 
-        // **Disable hotbar buttons if no pieces left**
-        normalStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
-        standingStoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE) > 0 ? Touchable.enabled : Touchable.disabled);
-        capstoneImage.setTouchable(targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE) > 0 ? Touchable.enabled : Touchable.disabled);
+        // Disable hotbar buttons if no pieces remain
+        normalStoneImage.setTouchable(
+            targetPlayer.getRemainingPieces(Piece.PieceType.FLAT_STONE) > 0
+                ? Touchable.enabled : Touchable.disabled);
+        standingStoneImage.setTouchable(
+            targetPlayer.getRemainingPieces(Piece.PieceType.STANDING_STONE) > 0
+                ? Touchable.enabled : Touchable.disabled);
+        capstoneImage.setTouchable(
+            targetPlayer.getRemainingPieces(Piece.PieceType.CAPSTONE) > 0
+                ? Touchable.enabled : Touchable.disabled);
     }
+
 
     /**
      * Updates the player scores displayed on the UI.
