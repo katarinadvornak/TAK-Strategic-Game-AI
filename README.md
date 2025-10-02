@@ -4,38 +4,6 @@ Welcome to **Tak**, a digital rendition of the classic strategy board game. This
 
 ---
 
-## Developed by Ken
-
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Game Rules](#game-rules)
-  - [Objective](#objective)
-  - [Components](#components)
-  - [Basic Rules](#basic-rules)
-    - [Setup](#setup)
-    - [First Move](#first-move)
-    - [Turns](#turns)
-    - [Placing a Piece](#placing-a-piece)
-    - [Moving a Stack](#moving-a-stack)
-    - [Stacking Rules](#stacking-rules)
-    - [Capstone Movement](#capstone-movement)
-    - [Winning the Game](#winning-the-game)
-- [How to Play](#how-to-play)
-  - [Controls](#controls)
-  - [Notes](#notes)
-- [Playing Against AI](#playing-against-ai)
-- [Installation and Running the Game](#installation-and-running-the-game)
-  - [Prerequisites](#prerequisites)
-  - [Steps](#steps)
-- [Game Mechanics and Features](#game-mechanics-and-features)
-  - [Technology Stack](#technology-stack)
-  - [Key Features](#key-features)
-  - [Architecture Overview](#architecture-overview)
-- [Credits](#credits)
-
----
-
 ## Introduction
 
 **Tak** is a two-player abstract strategy game that challenges players to build a road connecting opposite sides of the board. It combines simple rules with deep strategy, making it enjoyable for both casual players and serious tacticians.
